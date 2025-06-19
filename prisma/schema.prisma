@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model admin {
+  admin_id   Int    @id @default(autoincrement())
+  email      String @db.VarChar(255)
+  hash       String @db.VarChar(255)
+  salt       String @db.VarChar(255)
+  first_name String @db.VarChar(255)
+  last_name  String @db.VarChar(255)
+  role       String @db.VarChar(255)
+}
+
+model borrow {
+  borrow_id               Int                            @id @default(autoincrement())
+  user_id                 Int
+  device_id               Int
+  borrow_date             DateTime                       @db.Date
+  return_date             DateTime?                      @db.Date
+  borrow_status           borrow_borrow_status
+  device_return_condition borrow_device_return_condition
+  user_location           String?                        @db.VarChar(255)
+  device_location         String?                        @db.VarChar(255)
+  reason_for_borrow       borrow_reason_for_borrow
+  user                    user                           @relation(fields: [user_id], references: [user_id], onUpdate: Restrict, map: "borrow_ibfk_1")
+  device                  device                         @relation(fields: [device_id], references: [device_id], onUpdate: Restrict, map: "borrow_ibfk_2")
+
+  @@index([device_id], map: "device_id")
+  @@index([user_id], map: "user_id")
+}
+
+model device {
+  device_id     Int      @id @default(autoincrement())
+  brand         String?  @db.VarChar(255)
+  serial_number String   @db.VarChar(255)
+  location_id   Int
+  borrow        borrow[]
+  location      location @relation(fields: [location_id], references: [location_id], onUpdate: Restrict, map: "device_ibfk_1")
+
+  @@index([location_id], map: "location_id")
+}
+
+model location {
+  location_id    Int      @id @default(autoincrement())
+  street_address String   @db.VarChar(255)
+  city           String   @db.VarChar(255)
+  state          String   @db.Char(2)
+  zip_code       String   @db.Char(5)
+  device         device[]
+}
+
+model user {
+  user_id        Int      @id @default(autoincrement())
+  email          String   @unique @db.VarChar(255)
+  hash           String   @db.VarChar(255)
+  salt           String   @db.VarChar(255)
+  first_name     String   @db.VarChar(255)
+  last_name      String   @db.VarChar(255)
+  phone          String?  @db.VarChar(255)
+  street_address String   @db.VarChar(255)
+  city           String   @db.VarChar(255)
+  state          String   @db.Char(2)
+  zip_code       String   @db.Char(5)
+  dob            DateTime @db.Date
+  borrow         borrow[]
+}
+
+enum borrow_borrow_status {
+  Scheduled
+  Canceled
+  Checked_out @map("Checked out")
+  Checked_in  @map("Checked in")
+  Late
+}
+
+enum borrow_device_return_condition {
+  Good
+  Fair
+  Damaged
+}
+
+enum borrow_reason_for_borrow {
+  Job_Search @map("Job Search")
+  School
+  Training
+  Other
+}

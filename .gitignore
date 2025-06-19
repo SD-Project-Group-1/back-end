@@ -95,3 +95,4 @@ config.json
 database.db-journal
 
 /generated/prisma
+/generated/prisma
