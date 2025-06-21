@@ -1,12 +1,12 @@
 const {json, Router} = require("express");
 const prisma = require("../config/db");
-const {ensureAdminAuth, ensureAnyAuth} = require("../helpers/middleware");
+const {ensureAdminAuth} = require("../helpers/middleware");
 
 const router = Router();
 router.use(json());
 
-// Get all devices
-router.get("/getall", ensureAnyAuth, async(req, res) => {
+
+router.get("/getall", ensureAdminAuth, async(req, res) => {
     try {
         const devices = await prisma.device.findMany({
             include: {location: true}
@@ -18,8 +18,8 @@ router.get("/getall", ensureAnyAuth, async(req, res) => {
     }
 });
 
-//Get Device by ID
-router.get("/get/:deviceID", ensureAnyAuth, async (req, res) => {
+
+router.get("/get/:deviceId", ensureAdminAuth, async (req, res) => {
     const deviceId = parseInt(req.params.deviceId);
 
     if (!deviceId) {
@@ -42,7 +42,6 @@ router.get("/get/:deviceID", ensureAnyAuth, async (req, res) => {
     }
 });
 
-//Create new device (Admin only)
 router.post("/create", ensureAdminAuth, async (req, res) => {
     const {brand, serial_number, location_id } = req.body;
 
@@ -63,7 +62,6 @@ router.post("/create", ensureAdminAuth, async (req, res) => {
     }
 });
 
-//Remove device (Admin only)
 router.delete("/delete/:deviceID", ensureAdminAuth, async (req, res) => {
     const deviceId = parseInt(req.params.deviceId);
 
