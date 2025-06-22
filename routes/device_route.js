@@ -46,7 +46,7 @@ router.get("/get/:deviceId", ensureAdminAuth, async (req, res) => {
 });
 
 // ✅ POST (create) a new device
-router.post("/create", ensureAdminAuth, async (req, res) => {
+router.post("/create", async (req, res) => {
   const { brand, serial_number, location_id } = req.body;
 
   if (!serial_number || !location_id) {
