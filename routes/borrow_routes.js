@@ -34,6 +34,7 @@ router.post("/create", ensureAnyAuth, async (req, res) => {
     device_return_condition = null; // Ignore user input)
   } else {
     borrow_status = borrow_status || "Submitted"; 
+    device_return_condition = device_return_condition || null;  // Admins can set or leave null
   }
 
   if (!user_id || !device_id || !borrow_date || !reason_for_borrow) {
