@@ -10,9 +10,9 @@ router.get("/ping", (req, res) => {
   res.send("Borrow route is working!");
 });
 
-// Create borrow record: Only admins can update borrow_status and return condition 
-router.post("/create", ensureAdminAuth, async (req, res) => {
-  const {
+// Create borrow record: Users can submit requests; only admins can set status and condition
+router.post("/create", ensureAnyAuth, async (req, res) => {
+  let {
     user_id,
     device_id,
     borrow_date,
@@ -24,15 +24,25 @@ router.post("/create", ensureAdminAuth, async (req, res) => {
     reason_for_borrow
   } = req.body;
 
-  const validStatus = ["Scheduled", "Canceled", "Checked out", "Checked in", "Late"];
+  const validStatus = ["Scheduled", "Canceled", "Checked out", "Checked in", "Late", "Submitted"];
   const validConditions = ["Good", "Fair", "Damaged"];
   const validReasons = ["Job Search", "School", "Training", "Other"];
 
-  if (!user_id || !device_id || !borrow_date || !borrow_status || !device_return_condition || !reason_for_borrow) {
+  // Enforce defaults and prevent override if not admin
+  if (req.role !== "admin") {
+    borrow_status = "Submitted";	// Force default status for users
+    device_return_condition = null; // Ignore user input)
+  } else {
+    borrow_status = borrow_status || "Submitted"; 
+  }
+
+  if (!user_id || !device_id || !borrow_date || !reason_for_borrow) {
     return res.status(400).send("Missing required fields.");
   }
 
-  if (!validStatus.includes(borrow_status) || !validConditions.includes(device_return_condition) || !validReasons.includes(reason_for_borrow)) {
+  if (!validStatus.includes(borrow_status) || 
+      (device_return_condition && !validConditions.includes(device_return_condition)) || 
+      !validReasons.includes(reason_for_borrow)) {
     return res.status(400).send("Invalid enum value provided.");
   }
 

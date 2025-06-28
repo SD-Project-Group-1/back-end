@@ -25,7 +25,7 @@ model borrow {
   borrow_date             DateTime                       @db.Date
   return_date             DateTime?                      @db.Date
   borrow_status           borrow_borrow_status
-  device_return_condition borrow_device_return_condition
+  device_return_condition borrow_device_return_condition @default(Submitted)
   user_location           String?                        @db.VarChar(255)
   device_location         String?                        @db.VarChar(255)
   reason_for_borrow       borrow_reason_for_borrow
@@ -73,6 +73,7 @@ model user {
 }
 
 enum borrow_borrow_status {
+  Submitted
   Scheduled
   Canceled
   Checked_out @map("Checked out")
