@@ -1,4 +1,4 @@
-const { checkAdminToken, checkUserToken } = require("./authentication");
+const { checkToken } = require("./authentication");
 
 /**
  * @param {string} type
@@ -7,42 +7,28 @@ const { checkAdminToken, checkUserToken } = require("./authentication");
  * @param {import("express").NextFunction} next
  */
 async function auth(type, req, res, next) {
-  const authHeader = req.headers.authorization;
+  const token = req.cookies.token;
 
-  if (!authHeader) {
-    res.status(400).send("Bad authorization.");
-    return;
-  }
-  const token = authHeader.split(" ")[1];
-  const { role } = req.params;
-
-  if (type === "either") {
-    type = role ? "admin" : "user";
-  }
-
-  let result;
-  switch (type) {
-    case "user":
-      result = await checkUserToken(token);
-      req.role = "user";
-      break;
-    case "admin":
-      result = await checkAdminToken(token, role);
-      req.role = role;
-      break;
-  }
-
-  console.log(result);
-  console.log(req.role);
-  console.log(type);
-
-  if (result !== null) {
-    req.id = result.id;
-    next();
+  if (!token) {
+    res.status(401).json({ error: "Unauthorized" });
     return;
   }
 
-  res.status(400).send("Not authorized");
+  const result = await checkToken(token);
+
+  if (!result) {
+    res.status(400).send("Not authorized");
+    return;
+  }
+
+  if (type !== "user" && type !== "either" && result.role === "user") {
+    res.status(400).json({ error: "Bad auth." });
+    return;
+  }
+
+  req.id = result.id;
+  req.role = result.role;
+  next();
 }
 
 const ensureAnyAuth = async (req, res, next) =>

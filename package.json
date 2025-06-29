@@ -6,17 +6,22 @@
   "scripts": {
     "test": "echo \"Testing still needs to be implemented.\" && exit 1",
     "dev": "node --env-file .env --watch-path .",
-    "start": "node --env-file .env ."
+    "start": "node --env-file .env .",
+    "create-admin": "node --env-file .env create_admin.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@prisma/client": "^6.10.0",
+    "@prisma/client": "^6.6.0",
+    "cookie-parser": "^1.4.7",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mysql": "^2.18.1",
     "mysql2": "^3.14.1"
+  },
+  "devDependencies": {
+    "prisma": "^6.6.0"
   }
 }

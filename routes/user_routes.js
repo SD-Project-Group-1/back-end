@@ -6,6 +6,21 @@ const { ensureUserAuth, ensureAdminAuth, ensureAnyAuth } = require(
   "../helpers/middleware",
 );
 
+const getUserPayload = (user) => (
+  {
+    id: user.user_id,
+    email: user.email,
+    first_name: user.first_name,
+    last_name: user.last_name,
+    phone: user.phone,
+    street_address: user.street_address,
+    city: user.city,
+    state: user.state,
+    zip_code: user.zip_code,
+    dob: user.dob,
+  }
+);
+
 const router = Router();
 
 router.use(json());
@@ -39,6 +54,16 @@ router.post("/create", async (req, res) => {
     !first_name || !last_name || !phone || !street_address || !city || !state ||
     !zip_code || !dob
   ) {
+    console.log(
+      !first_name,
+      !last_name,
+      !phone,
+      !street_address,
+      !city,
+      !state,
+      !zip_code,
+      !dob,
+    );
     res.status(400).send("Missing user information.");
     return;
   }
@@ -91,7 +116,7 @@ router.post("/signin", async (req, res) => {
     return;
   }
 
-  const user = await prisma.user.findFirst({ where: { email } });
+  const user = await prisma.user.findFirst({ where: { email: email } });
 
   if (!user) {
     res.status(400).send("Bad credentials");
@@ -107,7 +132,18 @@ router.post("/signin", async (req, res) => {
 
   const token = getUserToken(user.user_id);
 
-  res.json({ message: "Sign in succesful!", user, token });
+  //token is now a cookie. Not returned as json.
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "Strict",
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+  });
+
+  //MUST NOT INCLUDE HASH OR SALT
+  const userPayload = getUserPayload(user);
+
+  res.json({ message: "Sign in succesful!", userPayload });
 });
 
 router.post("/reset", async (req, res) => {
