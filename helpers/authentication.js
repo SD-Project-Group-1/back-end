@@ -12,21 +12,9 @@ exports.getUserToken = (id) =>
 exports.getAdminToken = (id, role) =>
   jwt.sign({ id, role }, secret, { expiresIn: "30d" });
 
-exports.checkUserToken = (token) => checkToken(token, "user");
-exports.checkAdminToken = (token, role) => checkToken(token, role);
+exports.checkToken = (token) => checkToken(token);
 
-const checkToken = (token, role) => {
-  return new Promise((res, rej) => {
-    jwt.verify(token, secret, (err, user) => {
-      if (err) {
-        rej(err);
-      }
-
-      if (user.role === role) {
-        res(user);
-      }
-
-      res(null);
-    });
-  });
-};
+const checkToken = (token) =>
+  new Promise((res, rej) =>
+    jwt.verify(token, secret, (err, user) => err ? rej(err) : res(user))
+  );
