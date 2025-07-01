@@ -57,4 +57,4 @@ async function main() {
   }
 }
 
-main().finally(rl?.close);
+main().finally(() => rl?.close?.());
