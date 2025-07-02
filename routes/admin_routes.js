@@ -105,6 +105,33 @@ router.post("/signin", async (req, res) => {
   });
 });
 
+router.get("/get/:adminId", ensureAdminAuth, async (req, res) => {
+  if (req.role !== "management") {
+    res.status(400).json({ error: "Bad permissions." });
+    return;
+  }
+
+  const admin = await prisma.admin.findFirst({
+    where: { admin_id: req.adminId },
+  });
+
+  if (admin === null) {
+    res.status(400).json({ error: "No such admin found." });
+    return;
+  }
+
+  res.status(200).json({
+    message: "Login successful",
+    admin: {
+      admin_id: admin.admin_id,
+      email: admin.email,
+      first_name: admin.first_name,
+      last_name: admin.last_name,
+      role: admin.role,
+    },
+  });
+});
+
 // Delete Admin
 router.delete("/delete/:adminId", ensureAdminAuth, async (req, res) => {
   const id = Number.parseInt(req.params.adminId);
@@ -129,4 +156,3 @@ router.delete("/delete/:adminId", ensureAdminAuth, async (req, res) => {
 });
 
 module.exports = router;
-
