@@ -212,6 +212,21 @@ router.delete("/delete/:userId", ensureAnyAuth, async (req, res) => {
   }
 
   try {
+    // Check if any active reservation or rental exists
+    const activeBorrow = await prisma.borrow.findFirst({
+      where: {
+        user_id: requestedId,
+        borrow_status: {
+          notIn: ["Canceled", "Checked_in"],
+        },
+      },
+    });
+
+    if (activeBorrow) {
+      res.status(400).send("User has an active reservation or rental. Cannot delete account.");
+      return;
+    }
+    
     const deletedUser = await prisma.user.delete({
       where: { user_id: requestedId },
     });
