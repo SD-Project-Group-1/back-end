@@ -143,7 +143,8 @@ router.post("/signin", async (req, res) => {
   //MUST NOT INCLUDE HASH OR SALT
   const userPayload = getUserPayload(user);
 
-  res.json({ message: "Sign in succesful!", userPayload });
+  // Includes token for mobile apps
+  res.json({ message: "Sign in succesful!", userPayload, token:token }); 
 });
 
 router.post("/reset", async (req, res) => {
