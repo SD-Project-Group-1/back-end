@@ -28,16 +28,20 @@ app.get("/api/me", ensureAnyAuth, async (req, res) => {
         where: { user_id: req.id },
       });
       res.json({
-        id: user.user_id,
-        email: user.email,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        phone: user.phone,
-        street_address: user.street_address,
-        city: user.city,
-        state: user.state,
-        zip_code: user.zip_code,
-        dob: user.dob,
+        message: "User login successful",
+        loginType: "user",
+        user: {
+          id: user.user_id,
+          email: user.email,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          phone: user.phone,
+          street_address: user.street_address,
+          city: user.city,
+          state: user.state,
+          zip_code: user.zip_code,
+          dob: user.dob,
+        }
       });
       return;
     }
@@ -47,7 +51,8 @@ app.get("/api/me", ensureAnyAuth, async (req, res) => {
     });
 
     res.json({
-      message: "Login successful",
+      message: "Admin login successful",
+      loginType: "admin",
       admin: {
         admin_id: admin.admin_id,
         email: admin.email,

@@ -24,7 +24,9 @@ router.post("/create", ensureAnyAuth, async (req, res) => {
     reason_for_borrow
   } = req.body;
 
-  const validStatus = ["Scheduled", "Canceled", "Checked out", "Checked in", "Late", "Submitted"];
+  reason_for_borrow = reason_for_borrow.replace(' ', '_');
+
+  const validStatus = ["Scheduled", "Cancelled", "Checked out", "Checked in", "Late", "Submitted"];
   const validConditions = ["Good", "Fair", "Damaged"];
   const validReasons = ["Job Search", "School", "Training", "Other"];
 
@@ -33,32 +35,65 @@ router.post("/create", ensureAnyAuth, async (req, res) => {
     borrow_status = "Submitted";	// Force default status for users
     device_return_condition = null; // Ignore user input)
   } else {
-    borrow_status = borrow_status || "Submitted"; 
+    borrow_status = borrow_status || "Submitted";
     device_return_condition = device_return_condition || null;  // Admins can set or leave null
+  }
+
+  if (!device_id) {
+    const device = await prisma.device.findFirst({
+      where: {
+        OR: [
+          {
+            borrow: {
+              none: {},
+            },
+          },
+          {
+            borrow: {
+              every: {
+                borrow_status: 'Checked_in',
+              },
+            },
+          },
+        ],
+      }
+    });
+
+    if (!device) {
+      console.error("Could not find a device to borrow!");
+      res.status(400).send("Could not find a device to borrow!")
+      return;
+    }
+
+    device_id = device.device_id;
   }
 
   if (!user_id || !device_id || !borrow_date || !reason_for_borrow) {
     return res.status(400).send("Missing required fields.");
   }
 
-  if (!validStatus.includes(borrow_status) || 
-      (device_return_condition && !validConditions.includes(device_return_condition)) || 
-      !validReasons.includes(reason_for_borrow)) {
+  if (!validStatus.includes(borrow_status) ||
+    (device_return_condition && !validConditions.includes(device_return_condition)) ||
+    !validReasons.includes(reason_for_borrow)) {
     return res.status(400).send("Invalid enum value provided.");
   }
 
   try {
     const borrow = await prisma.borrow.create({
       data: {
-        user_id,
-        device_id,
         borrow_date: new Date(borrow_date),
         return_date: return_date ? new Date(return_date) : null,
         borrow_status,
         device_return_condition,
         user_location,
         device_location,
-        reason_for_borrow
+        reason_for_borrow,
+        user: {
+          connect: { user_id: user_id }
+        },
+        device: {
+          connect: { device_id: device_id }
+        }
       }
     });
 
@@ -72,12 +107,25 @@ router.post("/create", ensureAnyAuth, async (req, res) => {
 // Get all borrow records (Admin only)
 router.get("/getall", ensureAdminAuth, async (req, res) => {
   try {
-    const records = await prisma.borrow.findMany({
+    const { page, pageSize } = req.params;
+
+    const prismaConfig = {
       include: {
         user: true,
         device: true
       }
-    });
+    };
+
+    if (pageSize && typeof pageSize == "number") {
+      prismaConfig.take = pageSize;
+
+      if (page && typeof page == "number") {
+        prismaConfig.skip = (page - 1) * pageSize;
+      }
+    }
+
+
+    const records = await prisma.borrow.findMany(prismaConfig);
     res.json(records);
   } catch (error) {
     console.error(error);
