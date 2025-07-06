@@ -227,7 +227,9 @@ router.delete("/delete/:userId", ensureAnyAuth, async (req, res) => {
 });
 
 router.get("/getall", ensureAdminAuth, async (req, res) => {
-  const users = await prisma.user.findMany({
+  const { page, pageSize } = req.params;
+
+  const prismaConfig = {
     select: {
       user_id: true,
       email: true,
@@ -240,7 +242,17 @@ router.get("/getall", ensureAdminAuth, async (req, res) => {
       zip_code: true,
       dob: true,
     },
-  });
+  };
+
+  if (pageSize && typeof pageSize == "number") {
+    prismaConfig.take = pageSize;
+
+    if (page && typeof page == "number") {
+      prismaConfig.skip = (page - 1) * pageSize;
+    }
+  }
+
+  const users = await prisma.user.findMany(prismaConfig);
 
   res.send(users);
 });

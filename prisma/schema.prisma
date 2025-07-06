@@ -19,18 +19,18 @@ model admin {
 }
 
 model borrow {
-  borrow_id               Int                            @id @default(autoincrement())
+  borrow_id               Int                             @id @default(autoincrement())
   user_id                 Int
   device_id               Int
-  borrow_date             DateTime                       @db.Date
-  return_date             DateTime?                      @db.Date
-  borrow_status           borrow_borrow_status           @default(Submitted)
-  device_return_condition borrow_device_return_condition @default(Good)
-  user_location           String?                        @db.VarChar(255)
-  device_location         String?                        @db.VarChar(255)
+  borrow_date             DateTime                        @db.Date
+  return_date             DateTime?                       @db.Date
+  borrow_status           borrow_borrow_status            @default(Submitted)
+  device_return_condition borrow_device_return_condition? @default(Good)
+  user_location           String?                         @db.VarChar(255)
+  device_location         String?                         @db.VarChar(255)
   reason_for_borrow       borrow_reason_for_borrow
-  user                    user                           @relation(fields: [user_id], references: [user_id], onUpdate: Restrict, map: "borrow_ibfk_1")
-  device                  device                         @relation(fields: [device_id], references: [device_id], onUpdate: Restrict, map: "borrow_ibfk_2")
+  user                    user                            @relation(fields: [user_id], references: [user_id], onUpdate: Restrict, map: "borrow_ibfk_1")
+  device                  device                          @relation(fields: [device_id], references: [device_id], onUpdate: Restrict, map: "borrow_ibfk_2")
 
   @@index([device_id], map: "device_id")
   @@index([user_id], map: "user_id")
@@ -39,6 +39,9 @@ model borrow {
 model device {
   device_id     Int      @id @default(autoincrement())
   brand         String?  @db.VarChar(255)
+  make          String?  @db.VarChar(255)
+  model         String?  @db.VarChar(255)
+  type          String?  @db.VarChar(255)
   serial_number String   @db.VarChar(255)
   location_id   Int
   borrow        borrow[]
@@ -48,12 +51,13 @@ model device {
 }
 
 model location {
-  location_id    Int      @id @default(autoincrement())
-  street_address String   @db.VarChar(255)
-  city           String   @db.VarChar(255)
-  state          String   @db.Char(2)
-  zip_code       String   @db.Char(5)
-  device         device[]
+  location_nickname String?
+  location_id       Int      @id @default(autoincrement())
+  street_address    String   @db.VarChar(255)
+  city              String   @db.VarChar(255)
+  state             String   @db.Char(2)
+  zip_code          String   @db.Char(5)
+  device            device[]
 }
 
 model user {
@@ -75,7 +79,7 @@ model user {
 enum borrow_borrow_status {
   Submitted
   Scheduled
-  Canceled
+  Cancelled
   Checked_out @map("Checked out")
   Checked_in  @map("Checked in")
   Late

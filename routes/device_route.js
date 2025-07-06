@@ -7,9 +7,21 @@ router.use(json());
 
 router.get("/getall", ensureAdminAuth, async (req, res) => {
   try {
-    const devices = await prisma.device.findMany({
-      include: { location: true },
-    });
+    const { page, pageSize } = req.params;
+
+    const prismaConfig = {
+      include: { location: true, borrow: true },
+    };
+
+    if (pageSize && typeof pageSize == "number") {
+      prismaConfig.take = pageSize;
+
+      if (page && typeof page == "number") {
+        prismaConfig.skip = (page - 1) * pageSize;
+      }
+    }
+
+    const devices = await prisma.device.findMany(prismaConfig);
     res.send(devices);
   } catch (err) {
     res.status(500).send("Failed to get devices.");
@@ -41,7 +53,7 @@ router.get("/get/:deviceId", ensureAdminAuth, async (req, res) => {
 });
 
 router.post("/create", ensureAdminAuth, async (req, res) => {
-  const { brand, serial_number, location_id } = req.body;
+  const { brand, make, model, type, serial_number, location_id } = req.body;
 
   if (!serial_number || !location_id) {
     res.status(400).send("Missing required information.");
@@ -50,7 +62,7 @@ router.post("/create", ensureAdminAuth, async (req, res) => {
 
   try {
     const device = await prisma.device.create({
-      data: { brand, serial_number, location_id },
+      data: { brand, serial_number, location_id, make, model, type },
     });
 
     res.status(201).send(device);
