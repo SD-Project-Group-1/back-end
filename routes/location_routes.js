@@ -1,33 +1,27 @@
 const { json, Router } = require("express");
 const prisma = require("../config/db");
-const { ensureAdminAuth, ensureAnyAuth } = require("../helpers/middleware");
+const { ensureAdminAuth, ensureAnyAuth, populatePaging, populateSearch, populateSort } = require("../helpers/middleware");
 
 const router = Router();
 router.use(json());
 
-router.get("/getall", ensureAnyAuth, async (req, res) => {
-  try {
-    const { page, pageSize } = req.params;
+router.get("/getall",
+  ensureAnyAuth, populatePaging, populateSearch(["location_nickname", "street_address", "city", "state", "zip_code"]), populateSort,
+  async (req, res) => {
+    try {
+      const { pagingConf, whereConf, orderByConf } = req;
 
-    const prismaConfig = {
-      include: { device: true },
-    };
-
-    if (pageSize && typeof pageSize == "number") {
-      prismaConfig.take = pageSize;
-
-      if (page && typeof page == "number") {
-        prismaConfig.skip = (page - 1) * pageSize;
-      }
+      const locations = await prisma.location.findMany({
+        ...pagingConf,
+        ...whereConf,
+        ...orderByConf
+      });
+      res.send(locations);
+    } catch (err) {
+      res.status(500).send("Failed to retrieve locations.");
+      console.error(err);
     }
-
-    const locations = await prisma.location.findMany(prismaConfig);
-    res.send(locations);
-  } catch (err) {
-    res.status(500).send("Failed to retrieve locations.");
-    console.error(err);
-  }
-});
+  });
 
 router.get("/get/:locationId", ensureAdminAuth, async (req, res) => {
   const locationId = parseInt(req.params.locationId);
@@ -40,7 +34,9 @@ router.get("/get/:locationId", ensureAdminAuth, async (req, res) => {
   try {
     const location = await prisma.location.findUnique({
       where: { location_id: locationId },
-      include: { device: true },
+      device: {
+        include: { location: true }
+      }
     });
 
     if (!location) {

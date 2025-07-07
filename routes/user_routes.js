@@ -2,7 +2,7 @@ const { json, Router } = require("express");
 const prisma = require("../config/db");
 const { generateSalt, getHashedPassword } = require("../helpers/encryption");
 const { getUserToken } = require("../helpers/authentication");
-const { ensureUserAuth, ensureAdminAuth, ensureAnyAuth } = require(
+const { ensureUserAuth, ensureAdminAuth, ensureAnyAuth, populatePaging, populateSearch, populateSort } = require(
   "../helpers/middleware",
 );
 
@@ -144,7 +144,7 @@ router.post("/signin", async (req, res) => {
   const userPayload = getUserPayload(user);
 
   // Includes token for mobile apps
-  res.json({ message: "Sign in succesful!", userPayload, token:token }); 
+  res.json({ message: "Sign in succesful!", userPayload, token: token });
 });
 
 router.post("/reset", async (req, res) => {
@@ -227,7 +227,7 @@ router.delete("/delete/:userId", ensureAnyAuth, async (req, res) => {
       res.status(400).send("User has an active reservation or rental. Cannot delete account.");
       return;
     }
-    
+
     const deletedUser = await prisma.user.delete({
       where: { user_id: requestedId },
     });
@@ -242,36 +242,31 @@ router.delete("/delete/:userId", ensureAnyAuth, async (req, res) => {
   }
 });
 
-router.get("/getall", ensureAdminAuth, async (req, res) => {
-  const { page, pageSize } = req.params;
+router.get("/getall",
+  ensureAdminAuth, populatePaging, populateSearch(["email", "first_name", "last_name"]), populateSort,
+  async (req, res) => {
+    const { pagingConf, whereConf, orderByConf } = req;
 
-  const prismaConfig = {
-    select: {
-      user_id: true,
-      email: true,
-      first_name: true,
-      last_name: true,
-      phone: true,
-      street_address: true,
-      city: true,
-      state: true,
-      zip_code: true,
-      dob: true,
-    },
-  };
+    const users = await prisma.user.findMany({
+      select: {
+        user_id: true,
+        email: true,
+        first_name: true,
+        last_name: true,
+        phone: true,
+        street_address: true,
+        city: true,
+        state: true,
+        zip_code: true,
+        dob: true,
+      },
+      ...pagingConf,
+      ...whereConf,
+      ...orderByConf
+    });
 
-  if (pageSize && typeof pageSize == "number") {
-    prismaConfig.take = pageSize;
-
-    if (page && typeof page == "number") {
-      prismaConfig.skip = (page - 1) * pageSize;
-    }
-  }
-
-  const users = await prisma.user.findMany(prismaConfig);
-
-  res.send(users);
-});
+    res.send(users);
+  });
 
 router.get("/get/:userId", ensureAnyAuth, async (req, res) => {
   const requestedId = Number.parseInt(req.params.userId);
