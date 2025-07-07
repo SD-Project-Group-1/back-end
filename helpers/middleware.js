@@ -53,7 +53,7 @@ const populatePaging = async (req, _res, next) => {
   const pagingConf = {};
 
   try {
-    pageNum = Number.parseInt(page);
+    page = Number.parseInt(page);
     pageSize = Number.parseInt(pageSize);
   } catch { }
 
