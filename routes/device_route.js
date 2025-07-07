@@ -1,33 +1,29 @@
 const { json, Router } = require("express");
 const prisma = require("../config/db");
-const { ensureAdminAuth } = require("../helpers/middleware");
+const { ensureAdminAuth, populatePaging, populateSearch, populateSort } = require("../helpers/middleware");
 
 const router = Router();
 router.use(json());
 
-router.get("/getall", ensureAdminAuth, async (req, res) => {
-  try {
-    const { page, pageSize } = req.query;
+router.get("/getall",
+  ensureAdminAuth, populatePaging, populateSearch(["brand", "make", "model", "type", "serial_number"]), populateSort,
+  async (req, res) => {
+    try {
+      const { pagingConf, whereConf, orderByConf } = req;
 
-    const prismaConfig = {
-      include: { location: true, borrow: true },
-    };
+      const devices = await prisma.device.findMany({
+        include: { location: true, borrow: true },
+        ...pagingConf,
+        ...whereConf,
+        ...orderByConf
+      });
 
-    if (pageSize && typeof pageSize == "number") {
-      prismaConfig.take = pageSize;
-
-      if (page && typeof page == "number") {
-        prismaConfig.skip = (page - 1) * pageSize;
-      }
+      res.send(devices);
+    } catch (err) {
+      res.status(500).send("Failed to get devices.");
+      console.error(err);
     }
-
-    const devices = await prisma.device.findMany(prismaConfig);
-    res.send(devices);
-  } catch (err) {
-    res.status(500).send("Failed to get devices.");
-    console.error(err);
-  }
-});
+  });
 
 router.get("/get/:deviceId", ensureAdminAuth, async (req, res) => {
   const deviceId = parseInt(req.params.deviceId);

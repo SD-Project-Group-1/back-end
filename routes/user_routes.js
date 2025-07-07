@@ -144,7 +144,7 @@ router.post("/signin", async (req, res) => {
   const userPayload = getUserPayload(user);
 
   // Includes token for mobile apps
-  res.json({ message: "Sign in succesful!", userPayload, token:token }); 
+  res.json({ message: "Sign in succesful!", userPayload, token: token });
 });
 
 router.post("/reset", async (req, res) => {
@@ -227,7 +227,7 @@ router.delete("/delete/:userId", ensureAnyAuth, async (req, res) => {
       res.status(400).send("User has an active reservation or rental. Cannot delete account.");
       return;
     }
-    
+
     const deletedUser = await prisma.user.delete({
       where: { user_id: requestedId },
     });
@@ -243,9 +243,8 @@ router.delete("/delete/:userId", ensureAnyAuth, async (req, res) => {
 });
 
 router.get("/getall",
-  ensureAdminAuth, populatePaging, populateSearch(["email", "first_name", "last_name", "user_id"]), populateSort,
+  ensureAdminAuth, populatePaging, populateSearch(["email", "first_name", "last_name"]), populateSort,
   async (req, res) => {
-    //, sortBy, sortDir, q
     const { pagingConf, whereConf, orderByConf } = req;
 
     const users = await prisma.user.findMany({

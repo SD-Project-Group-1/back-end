@@ -1,6 +1,6 @@
 const { Router, json } = require("express");
 const prisma = require("../config/db");
-const { ensureAnyAuth, ensureAdminAuth } = require("../helpers/middleware");
+const { ensureAnyAuth, ensureAdminAuth, populatePaging, populateSearch, populateSort } = require("../helpers/middleware");
 
 const router = Router();
 router.use(json());
@@ -105,48 +105,43 @@ router.post("/create", ensureAnyAuth, async (req, res) => {
 });
 
 // Get all borrow records (Admin only)
-router.get("/getall", ensureAdminAuth, async (req, res) => {
-  try {
-    const { page, pageSize } = req.query;
+router.get("/getall",
+  ensureAdminAuth, populatePaging, populateSort,
+  async (req, res) => {
+    try {
+      const { pagingConf, whereConf, orderByConf } = req;
 
-    const prismaConfig = {
-      include: {
-        user: {
-          select: {
-            user_id: true,
-            email: true,
-            first_name: true,
-            last_name: true,
-            phone: true,
-            street_address: true,
-            city: true,
-            state: true,
-            zip_code: true,
-            dob: true,
+      //TODO: Where needs to be usable on fields inside of usser too.
+      const records = await prisma.borrow.findMany({
+        include: {
+          user: {
+            select: {
+              user_id: true,
+              email: true,
+              first_name: true,
+              last_name: true,
+              phone: true,
+              street_address: true,
+              city: true,
+              state: true,
+              zip_code: true,
+              dob: true,
+            }
+          },
+          device: {
+            include: { location: true }
           }
         },
-        device: {
-          include: { location: true }
-        }
-      }
-    };
-
-    if (pageSize && typeof pageSize == "number") {
-      prismaConfig.take = pageSize;
-
-      if (page && typeof page == "number") {
-        prismaConfig.skip = (page - 1) * pageSize;
-      }
+        ...pagingConf,
+        ...whereConf,
+        ...orderByConf
+      });
+      res.json(records);
+    } catch (error) {
+      console.error(error);
+      res.status(500).send("Failed to retrieve borrow records.");
     }
-
-
-    const records = await prisma.borrow.findMany(prismaConfig);
-    res.json(records);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Failed to retrieve borrow records.");
-  }
-});
+  });
 
 // Get borrow record by ID (User can access only their own)
 router.get("/:borrowId", ensureAnyAuth, async (req, res) => {
