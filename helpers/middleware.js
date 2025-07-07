@@ -40,4 +40,74 @@ const ensureUserAuth = async (req, res, next) =>
 const ensureAdminAuth = async (req, res, next) =>
   await auth("admin", req, res, next);
 
-module.exports = { ensureAnyAuth, ensureUserAuth, ensureAdminAuth };
+const populatePaging = async (req, _res, next) => {
+  let { page, pageSize } = req.query;
+
+  const pagingConf = {};
+
+  try {
+    pageNum = Number.parseInt(page);
+    pageSize = Number.parseInt(pageSize);
+  } catch { }
+
+  if (pageSize && typeof pageSize == "number") {
+    pagingConf.take = pageSize;
+
+    if (page && typeof page == "number") {
+      pagingConf.skip = (page - 1) * pageSize;
+    }
+  }
+
+  req.pagingConf = pagingConf;
+  next();
+}
+
+const populateSearch = (searchableFields) => {
+  return async (req, _res, next) => {
+    const { q } = req.query;
+
+    if (!q || !searchableFields?.length) {
+      req.whereConf = {};
+      next();
+      return;
+    }
+
+    const whereConf = {
+      where: {
+        OR: []
+      }
+    }
+
+    whereConf.where.OR = searchableFields.map((field) => {
+      let obj = {};
+      obj[field] = { contains: q }
+
+      return obj;
+    });
+
+    req.whereConf = whereConf;
+    next();
+  }
+}
+
+const populateSort = async (req, _res, next) => {
+  const { sortBy, sortDir } = req.query;
+
+  if (!sortBy || !sortDir || sortDir !== "asc" && sortDir !== "desc") {
+    req.orderByConf = {};
+    next();
+    return;
+  }
+
+  const orderByConf = {
+    orderBy: {
+
+    }
+  }
+
+  orderByConf.orderBy[sortBy] = sortDir;
+  req.orderByConf = orderByConf;
+  next();
+}
+
+module.exports = { ensureAnyAuth, ensureUserAuth, ensureAdminAuth, populatePaging, populateSort, populateSearch };

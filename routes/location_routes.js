@@ -10,7 +10,9 @@ router.get("/getall", ensureAnyAuth, async (req, res) => {
     const { page, pageSize } = req.params;
 
     const prismaConfig = {
-      include: { device: true },
+      device: {
+        include: { location: true }
+      }
     };
 
     if (pageSize && typeof pageSize == "number") {
@@ -40,7 +42,9 @@ router.get("/get/:locationId", ensureAdminAuth, async (req, res) => {
   try {
     const location = await prisma.location.findUnique({
       where: { location_id: locationId },
-      include: { device: true },
+      device: {
+        include: { location: true }
+      }
     });
 
     if (!location) {

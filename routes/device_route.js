@@ -7,7 +7,7 @@ router.use(json());
 
 router.get("/getall", ensureAdminAuth, async (req, res) => {
   try {
-    const { page, pageSize } = req.params;
+    const { page, pageSize } = req.query;
 
     const prismaConfig = {
       include: { location: true, borrow: true },
