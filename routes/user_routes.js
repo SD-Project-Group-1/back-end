@@ -143,7 +143,8 @@ router.post("/signin", async (req, res) => {
   //MUST NOT INCLUDE HASH OR SALT
   const userPayload = getUserPayload(user);
 
-  res.json({ message: "Sign in succesful!", userPayload });
+  // Includes token for mobile apps
+  res.json({ message: "Sign in succesful!", userPayload, token:token }); 
 });
 
 router.post("/reset", async (req, res) => {
@@ -212,6 +213,21 @@ router.delete("/delete/:userId", ensureAnyAuth, async (req, res) => {
   }
 
   try {
+    // Check if any active reservation or rental exists
+    const activeBorrow = await prisma.borrow.findFirst({
+      where: {
+        user_id: requestedId,
+        borrow_status: {
+          notIn: ["Canceled", "Checked_in"],
+        },
+      },
+    });
+
+    if (activeBorrow) {
+      res.status(400).send("User has an active reservation or rental. Cannot delete account.");
+      return;
+    }
+    
     const deletedUser = await prisma.user.delete({
       where: { user_id: requestedId },
     });

@@ -5,6 +5,7 @@ const adminRoutes = require("./routes/admin_routes.js");
 const deviceRoutes = require("./routes/device_route");
 const locationRoutes = require("./routes/location_routes");
 const borrowRoutes = require("./routes/borrow_routes");
+const zipcodeRoutes = require("./routes/zipcode_routes");
 const cookieParser = require("cookie-parser");
 const prisma = require("./config/db.js");
 const { ensureAnyAuth } = require("./helpers/middleware.js");
@@ -19,7 +20,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/devices", deviceRoutes);
 app.use("/api/locations", locationRoutes);
 app.use("/api/borrow", borrowRoutes);
-
+app.use("/api/zipcode", zipcodeRoutes);
 app.get("/api/me", ensureAnyAuth, async (req, res) => {
   try {
     if (req.role === "user") {

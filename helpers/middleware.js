@@ -7,7 +7,14 @@ const { checkToken } = require("./authentication");
  * @param {import("express").NextFunction} next
  */
 async function auth(type, req, res, next) {
-  const token = req.cookies.token;
+  // Check for token in Authorization header for mobile
+  let token = req.headers.authorization;
+  if (token && token.startsWith("Bearer ")) {
+    token = token.substring(7); // get only token from header
+  } else {
+    // Cookie token for web
+    token = req.cookies.token;
+  }
 
   if (!token) {
     res.status(401).json({ error: "Unauthorized" });
