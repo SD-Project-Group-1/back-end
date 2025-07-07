@@ -66,8 +66,6 @@ const populatePaging = async (req, _res, next) => {
     }
   }
 
-  console.log(pagingConf);
-
   req.pagingConf = pagingConf;
   next();
 }
