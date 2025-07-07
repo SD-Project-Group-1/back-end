@@ -53,17 +53,20 @@ const populatePaging = async (req, _res, next) => {
   const pagingConf = {};
 
   try {
-    pageNum = Number.parseInt(page);
+    page = Number.parseInt(page);
     pageSize = Number.parseInt(pageSize);
   } catch { }
 
   if (pageSize && typeof pageSize == "number") {
     pagingConf.take = pageSize;
 
+    console.log("PAGE", page, typeof page)
     if (page && typeof page == "number") {
       pagingConf.skip = (page - 1) * pageSize;
     }
   }
+
+  console.log(pagingConf);
 
   req.pagingConf = pagingConf;
   next();
