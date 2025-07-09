@@ -10,6 +10,31 @@ router.get("/ping", (req, res) => {
   res.send("Borrow route is working!");
 });
 
+router.get("/requested/:userId", ensureAnyAuth, async (req, res) => {
+  if (req.role === "user" && req.params.userId != req.id) {
+    res.status(401).send("Not authorized");
+    return;
+  }
+
+  const request = await prisma.borrow.findFirst({
+    where: {
+      user_id: req.id,
+      borrow_status: {
+        not: "Checked_in"
+      }
+    },
+    include: {
+      device: {
+        include: {
+          location: true
+        }
+      },
+    }
+  });
+
+  res.json(request);
+})
+
 // Create borrow record: Users can submit requests; only admins can set status and condition
 router.post("/create", ensureAnyAuth, async (req, res) => {
   let {
@@ -42,6 +67,11 @@ router.post("/create", ensureAnyAuth, async (req, res) => {
   if (!device_id) {
     const device = await prisma.device.findFirst({
       where: {
+        location: {
+          location_nickname: {
+            contains: device_location,
+          }
+        },
         OR: [
           {
             borrow: {
