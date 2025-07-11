@@ -11,7 +11,7 @@ router.get("/ping", (req, res) => {
 });
 
 router.get("/requested/:userId", ensureAnyAuth, async (req, res) => {
-  if (req.role === "user" && req.params.userId != req.id) {
+  if (req.role === "user" && req.params.userId !== req.id) {
     res.status(401).send("Not authorized");
     return;
   }
@@ -231,8 +231,10 @@ router.get("/user/:userId", ensureAnyAuth, async (req, res) => {
   try {
     const records = await prisma.borrow.findMany({
       where: { user_id: userId },
-      device: {
-        include: { location: true }
+      include: {
+        device: {
+          include: {location: true}
+        }
       }
     });
     res.json(records);
