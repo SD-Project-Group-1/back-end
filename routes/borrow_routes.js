@@ -134,9 +134,27 @@ router.post("/create", ensureAnyAuth, async (req, res) => {
   }
 });
 
+const sortAdapter = (field, dir) => {
+  switch (field) {
+    case "first_name": return { user: { first_name: dir } };
+    default:
+      console.error("Bad sort field argument! ", field);
+      return undefined;
+  }
+}
+
+const searchAdapter = (field, q) => {
+  switch (field) {
+    case "first_name": return { user: { first_name: { contains: q } } }
+    default:
+      console.error("Bad search field argument! ", field);
+      return undefined;
+  }
+}
+
 // Get all borrow records (Admin only)
 router.get("/getall",
-  ensureAdminAuth, populatePaging, populateSort,
+  ensureAdminAuth, populatePaging, populateSort(sortAdapter), populateSearch(["first_name"], searchAdapter),
   async (req, res) => {
     try {
       const { pagingConf, whereConf, orderByConf } = req;
@@ -166,7 +184,12 @@ router.get("/getall",
         ...whereConf,
         ...orderByConf
       });
-      res.json(records);
+
+      const count = await prisma.borrow.count({
+        ...whereConf
+      });
+
+      res.json({ data: records, count: count });
     } catch (error) {
       console.error(error);
       res.status(500).send("Failed to retrieve borrow records.");
