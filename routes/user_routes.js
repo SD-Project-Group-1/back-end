@@ -218,7 +218,7 @@ router.delete("/delete/:userId", ensureAnyAuth, async (req, res) => {
       where: {
         user_id: requestedId,
         borrow_status: {
-          notIn: ["Canceled", "Checked_in"],
+          notIn: ["Cancelled", "Checked_in"],
         },
       },
     });
