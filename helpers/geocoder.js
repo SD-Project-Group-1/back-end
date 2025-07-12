@@ -1,7 +1,9 @@
 const NodeGeocoder = require('node-geocoder');
 
 const options = {
-    provider: 'openstreetmap'
+    provider: 'locationiq',
+    apiKey: 'you-api-key-here',
+    _formatter: null,
 };
 
 const geocoder = NodeGeocoder(options);

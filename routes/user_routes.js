@@ -232,7 +232,7 @@ router.delete("/delete/:userId", ensureAnyAuth, async (req, res) => {
       where: { user_id: requestedId },
     });
     if (deletedUser) {
-      res.send("User deleted succesfully!");
+      res.send("User deleted successfully!");
     } else {
       res.status(400).send("No such user.");
     }
