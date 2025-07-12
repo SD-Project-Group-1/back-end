@@ -10,7 +10,7 @@ router.use(json());
 const sortAdapter = (field, dir) => {
   switch (field) {
     case "device_id": return { device_id: dir };
-    case "device": return { device: { brand: dir }, device: { make: dir }, device: { model: dir } };
+    case "device": return { device: { model: dir }, device: { make: dir }, device: { brand: dir } };
     case "brand": return { brand: dir };
     case "make": return { make: dir };
     case "model": return { model: dir };
