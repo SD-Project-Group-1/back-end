@@ -137,9 +137,10 @@ router.post("/create", ensureAnyAuth, async (req, res) => {
 const sortAdapter = (field, dir) => {
   switch (field) {
     case "borrow_id": return { borrow_id: dir };
+    case "name": return { user: { last_name: dir }, user: { first_name: dir } };
     case "first_name": return { user: { first_name: dir } };
     case "last_name": return { user: { last_name: dir } };
-    case "device": return { device: { brand: dir }, device: { make: dir }, device: { model: dir } };
+    case "device": return { device: { model: dir }, device: { make: dir }, device: { brand: dir } };
     case "device_serial_number": return { device: { serial_number: dir } };
     case "borrow_status": return { borrow_status: dir };
     case "borrow_date": return { borrow_date: dir };
@@ -162,7 +163,7 @@ const searchAdapter = (field, q) => {
   ];
 
   switch (field) {
-    case "borrow_id": return isNaN(q) ? undefined : { borrow_id: q };
+    case "borrow_id": return isNaN(q) ? {} : { borrow_id: q };
     case "first_name": return { user: { first_name: { contains: q } } };
     case "borrow_status": return { borrow_status: { in: validStatus.filter(x => x.toLowerCase().startsWith(q.toLowerCase())) } };
     case "device": return { device: { OR: [{ brand: { contains: q } }, { make: { contains: q } }, { model: { contains: q } }, { type: { contains: q } }] } };

@@ -10,7 +10,7 @@ router.use(json());
 const sortAdapter = (field, dir) => {
   switch (field) {
     case "device_id": return { device_id: dir };
-    case "device": return { device: { brand: dir }, device: { make: dir }, device: { model: dir } };
+    case "device": return { device: { model: dir }, device: { make: dir }, device: { brand: dir } };
     case "brand": return { brand: dir };
     case "make": return { make: dir };
     case "model": return { model: dir };
@@ -26,7 +26,7 @@ const sortAdapter = (field, dir) => {
 
 const searchAdapter = (field, q) => {
   switch (field) {
-    case "device_id": return isNaN(q) ? undefined : { device_id: Number.parseInt(q) };
+    case "device_id": return isNaN(q) ? {} : { device_id: Number.parseInt(q) };
     case "brand": return { brand: { contains: q } };
     case "make": return { make: { contains: q } };
     case "model": return { model: { contains: q } };
