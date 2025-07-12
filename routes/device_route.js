@@ -26,7 +26,7 @@ const sortAdapter = (field, dir) => {
 
 const searchAdapter = (field, q) => {
   switch (field) {
-    case "device_id": return isNaN(q) ? undefined : { device_id: Number.parseInt(q) };
+    case "device_id": return isNaN(q) ? {} : { device_id: Number.parseInt(q) };
     case "brand": return { brand: { contains: q } };
     case "make": return { make: { contains: q } };
     case "model": return { model: { contains: q } };

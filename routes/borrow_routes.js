@@ -162,7 +162,7 @@ const searchAdapter = (field, q) => {
   ];
 
   switch (field) {
-    case "borrow_id": return isNaN(q) ? undefined : { borrow_id: q };
+    case "borrow_id": return isNaN(q) ? {} : { borrow_id: q };
     case "first_name": return { user: { first_name: { contains: q } } };
     case "borrow_status": return { borrow_status: { in: validStatus.filter(x => x.toLowerCase().startsWith(q.toLowerCase())) } };
     case "device": return { device: { OR: [{ brand: { contains: q } }, { make: { contains: q } }, { model: { contains: q } }, { type: { contains: q } }] } };

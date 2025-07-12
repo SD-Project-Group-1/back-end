@@ -22,7 +22,7 @@ const sortAdapter = (field, dir) => {
 const searchAdapter = (field, q) => {
   switch (field) {
     case "location_nickname": return { location_nickname: { contains: q } };
-    case "location_id": return isNaN(q) ? undefined : { location_id: Number.parseInt(q) };
+    case "location_id": return isNaN(q) ? {} : { location_id: Number.parseInt(q) };
     case "street_adress": return { street_address: { contains: q } };
     case "city": return { city: { contains: q } };
     case "state": return { state: { contains: q } };

@@ -23,7 +23,7 @@ const sortAdapter = (field, dir) => {
 
 const searchAdapter = (field, q) => {
   switch (field) {
-    case "admin_id": return isNaN(num) ? undefined : { admin_id: Number.parseInt(q) };
+    case "admin_id": return isNaN(num) ? {} : { admin_id: Number.parseInt(q) };
     case "email": return { email: { contains: q } };
     case "first_name": return { first_name: { contains: q } };
     case "last_name": return { last_name: { contains: q } };
