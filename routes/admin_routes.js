@@ -2,10 +2,72 @@ const { json, Router } = require("express");
 const prisma = require("../config/db");
 const { generateSalt, getHashedPassword } = require("../helpers/encryption");
 const { getAdminToken } = require("../helpers/authentication");
-const { ensureAdminAuth } = require("../helpers/middleware");
+const { ensureAdminAuth, populatePaging, populateSearch, populateSort } = require("../helpers/middleware");
 
 const router = Router();
 router.use(json());
+
+const sortAdapter = (field, dir) => {
+  switch (field) {
+    case "admin_id": return { admin_id: dir };
+    case "email": return { email: dir };
+    case "first_name": return { first_name: dir };
+    case "last_name": return { last_name: dir };
+    case "role": return { role: dir };
+    case "created": return { created: dir };
+    default:
+      console.error("Bad sort field argument! ", field);
+      return undefined;
+  }
+}
+
+const searchAdapter = (field, q) => {
+  switch (field) {
+    case "admin_id": return isNaN(num) ? undefined : { admin_id: Number.parseInt(q) };
+    case "email": return { email: { contains: q } };
+    case "first_name": return { first_name: { contains: q } };
+    case "last_name": return { last_name: { contains: q } };
+    case "role": return { role: { contains: q } };
+    default:
+      console.error("Bad search field argument! ", field);
+      return undefined;
+  }
+}
+
+
+router.get("/getall",
+  ensureAdminAuth, populatePaging, populateSearch(["admin_id", "email", "first_name", "last_name"], searchAdapter), populateSort(sortAdapter),
+  async (req, res) => {
+    if (req.role == "staff") {
+      res.status(401).send("Unauthorized");
+      return;
+    }
+
+    const { pagingConf, whereConf, orderByConf } = req;
+
+    try {
+      const data = await prisma.admin.findMany({
+        select: {
+          admin_id: true,
+          email: true,
+          first_name: true,
+          last_name: true,
+          role: true
+        },
+        ...pagingConf,
+        ...whereConf,
+        ...orderByConf
+      });
+
+      const count = await prisma.admin.count(whereConf);
+
+      res.json({ data, count });
+    } catch (err) {
+      console.error("Could not get admin data!");
+      console.error(err);
+      res.status(500).send("Failed to query database.");
+    }
+  });
 
 // Create Admin
 router.post("/create", ensureAdminAuth, async (req, res) => {

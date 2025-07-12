@@ -5,20 +5,55 @@ const { ensureAdminAuth, populatePaging, populateSearch, populateSort } = requir
 const router = Router();
 router.use(json());
 
+
+
+const sortAdapter = (field, dir) => {
+  switch (field) {
+    case "device_id": return { device_id: dir };
+    case "device": return { device: { brand: dir }, device: { make: dir }, device: { model: dir } };
+    case "brand": return { brand: dir };
+    case "make": return { make: dir };
+    case "model": return { model: dir };
+    case "type": return { type: dir };
+    case "serial_number": return { serial_number: dir };
+    case "location": return { location: { location_nickname: dir } };
+    case "created": return { created: dir };
+    default:
+      console.error("Bad sort field argument! ", field);
+      return undefined;
+  }
+}
+
+const searchAdapter = (field, q) => {
+  switch (field) {
+    case "device_id": return isNaN(q) ? undefined : { device_id: Number.parseInt(q) };
+    case "brand": return { brand: { contains: q } };
+    case "make": return { make: { contains: q } };
+    case "model": return { model: { contains: q } };
+    case "type": return { type: { contains: q } };
+    case "serial_number": return { serial_number: { contains: q } };
+    default:
+      console.error("Bad search field argument! ", field);
+      return undefined;
+  }
+}
+
 router.get("/getall",
-  ensureAdminAuth, populatePaging, populateSearch(["brand", "make", "model", "type", "serial_number"]), populateSort,
+  ensureAdminAuth, populatePaging, populateSearch(["device_id", "device", "brand", "make", "model", "type", "serial_number"], searchAdapter), populateSort(sortAdapter),
   async (req, res) => {
     try {
       const { pagingConf, whereConf, orderByConf } = req;
 
-      const devices = await prisma.device.findMany({
+      const data = await prisma.device.findMany({
         include: { location: true, borrow: true },
         ...pagingConf,
         ...whereConf,
         ...orderByConf
       });
 
-      res.send(devices);
+      const count = await prisma.device.count(whereConf);
+
+      res.send({ data, count });
     } catch (err) {
       res.status(500).send("Failed to get devices.");
       console.error(err);

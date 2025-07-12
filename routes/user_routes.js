@@ -242,30 +242,65 @@ router.delete("/delete/:userId", ensureAnyAuth, async (req, res) => {
   }
 });
 
+const sortAdapter = (field, dir) => {
+  switch (field) {
+    case "user_id": return { user_id: dir };
+    case "email": return { email: dir };
+    case "name": return { first_name: dir, last_name: dir };
+    case "first_name": return { first_name: dir };
+    case "last_name": return { last_name: dir };
+    case "dob": return { dob: dir };
+    case "created": return { created: dir };
+    default:
+      console.error("Bad sort field argument! ", field);
+      return undefined;
+  }
+}
+
+const searchAdapter = (field, q) => {
+  switch (field) {
+    case "user_id": return isNaN(num) ? undefined : { user_id: Number.parseInt(q) };
+    case "email": return { email: { contains: q } };
+    case "first_name": return { first_name: { contains: q } };
+    case "last_name": return { last_name: { contains: q } };
+    default:
+      console.error("Bad search field argument! ", field);
+      return undefined;
+  }
+}
+
 router.get("/getall",
-  ensureAdminAuth, populatePaging, populateSearch(["email", "first_name", "last_name"]), populateSort,
+  ensureAdminAuth, populatePaging, populateSearch(["user_id", "email", "first_name", "last_name"], searchAdapter), populateSort(sortAdapter),
   async (req, res) => {
     const { pagingConf, whereConf, orderByConf } = req;
 
-    const users = await prisma.user.findMany({
-      select: {
-        user_id: true,
-        email: true,
-        first_name: true,
-        last_name: true,
-        phone: true,
-        street_address: true,
-        city: true,
-        state: true,
-        zip_code: true,
-        dob: true,
-      },
-      ...pagingConf,
-      ...whereConf,
-      ...orderByConf
-    });
+    try {
+      const data = await prisma.user.findMany({
+        select: {
+          user_id: true,
+          email: true,
+          first_name: true,
+          last_name: true,
+          phone: true,
+          street_address: true,
+          city: true,
+          state: true,
+          zip_code: true,
+          dob: true,
+        },
+        ...pagingConf,
+        ...whereConf,
+        ...orderByConf
+      });
 
-    res.send(users);
+      const count = await prisma.user.count(whereConf);
+
+      res.send({ data, count });
+    } catch (err) {
+      console.error("Could not get admin data!");
+      console.error(err);
+      res.status(500).send("Failed to query database.");
+    }
   });
 
 router.get("/get/:userId", ensureAnyAuth, async (req, res) => {

@@ -5,18 +5,49 @@ const { ensureAdminAuth, ensureAnyAuth, populatePaging, populateSearch, populate
 const router = Router();
 router.use(json());
 
+const sortAdapter = (field, dir) => {
+  switch (field) {
+    case "location_nickname": return { location_nickname: dir };
+    case "location_id": return { location_id: dir };
+    case "street_adress": return { street_address: dir };
+    case "city": return { city: dir };
+    case "state": return { state: dir };
+    case "zip_code": return { zip_code: dir };
+    default:
+      console.error("Bad sort field argument! ", field);
+      return undefined;
+  }
+}
+
+const searchAdapter = (field, q) => {
+  switch (field) {
+    case "location_nickname": return { location_nickname: { contains: q } };
+    case "location_id": return isNaN(q) ? undefined : { location_id: Number.parseInt(q) };
+    case "street_adress": return { street_address: { contains: q } };
+    case "city": return { city: { contains: q } };
+    case "state": return { state: { contains: q } };
+    case "zip_code": return { zip_code: { contains: q } };
+    default:
+      console.error("Bad search field argument! ", field);
+      return undefined;
+  }
+}
+
 router.get("/getall",
-  ensureAnyAuth, populatePaging, populateSearch(["location_nickname", "street_address", "city", "state", "zip_code"]), populateSort,
+  ensureAnyAuth, populatePaging, populateSearch(["location_nickname", "street_address", "city", "state", "zip_code"], searchAdapter), populateSort(sortAdapter),
   async (req, res) => {
     try {
       const { pagingConf, whereConf, orderByConf } = req;
 
-      const locations = await prisma.location.findMany({
+      const data = await prisma.location.findMany({
         ...pagingConf,
         ...whereConf,
         ...orderByConf
       });
-      res.send(locations);
+
+      const count = await prisma.location.count(whereConf);
+
+      res.send({ data, count });
     } catch (err) {
       res.status(500).send("Failed to retrieve locations.");
       console.error(err);
