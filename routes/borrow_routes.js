@@ -11,7 +11,7 @@ router.get("/ping", (req, res) => {
 });
 
 router.get("/requested/:userId", ensureAnyAuth, async (req, res) => {
-  if (req.role === "user" && req.params.userId !== req.id) {
+  if (req.role === "user" && req.params.user_id !== req.id) {
     res.status(401).send("Not authorized");
     return;
   }
@@ -175,7 +175,7 @@ router.get("/getall",
 
 // Get borrow record by ID (User can access only their own)
 router.get("/:borrowId", ensureAnyAuth, async (req, res) => {
-  const borrowId = parseInt(req.params.borrowId);
+  const borrowId = parseInt(req.params.borrow_id);
 
   if (!borrowId) {
     res.status(400).send("Missing borrow id.");
@@ -222,7 +222,7 @@ router.get("/:borrowId", ensureAnyAuth, async (req, res) => {
 
 // Get records by user ID (User or Admin)
 router.get("/user/:userId", ensureAnyAuth, async (req, res) => {
-  const userId = parseInt(req.params.userId);
+  const userId = parseInt(req.params.user_id);
 
   if (req.role === "user" && req.id !== userId) {
     return res.status(403).send("Access denied. You can only access your own borrow records.");
@@ -276,7 +276,7 @@ router.get("/device/:deviceId", ensureAdminAuth, async (req, res) => {
 
 // Update borrow record (Admin only)
 router.patch("/update/:borrowId", ensureAdminAuth, async (req, res) => {
-  const borrowId = parseInt(req.params.borrowId);
+  const borrowId = parseInt(req.params.borrow_id);
   const { borrow_status, return_date, device_return_condition } = req.body;
 
   try {
@@ -306,7 +306,7 @@ router.patch("/update/:borrowId", ensureAdminAuth, async (req, res) => {
 
 // Delete a borrow record (Admin only)
 router.delete("/delete/:borrowId", ensureAdminAuth, async (req, res) => {
-  const borrowId = parseInt(req.params.borrowId);
+  const borrowId = parseInt(req.params.borrow_id);
 
   try {
     await prisma.borrow.delete({
