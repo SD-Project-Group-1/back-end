@@ -58,7 +58,16 @@ router.post("/create", ensureAdminAuth, async (req, res) => {
 
   try {
     const device = await prisma.device.create({
-      data: { brand, serial_number, location_id, make, model, type },
+      data: {
+        brand,
+        make,
+        model,
+        type,
+        serial_number,
+        location: {
+          connect: {location_id: parseInt(location_id) }
+        }
+      },
     });
 
     res.status(201).send(device);
