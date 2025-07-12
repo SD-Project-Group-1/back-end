@@ -134,15 +134,54 @@ router.post("/create", ensureAnyAuth, async (req, res) => {
   }
 });
 
+const sortAdapter = (field, dir) => {
+  switch (field) {
+    case "borrow_id": return { borrow_id: dir };
+    case "first_name": return { user: { first_name: dir } };
+    case "last_name": return { user: { last_name: dir } };
+    case "device": return { device: { brand: dir }, device: { make: dir }, device: { model: dir } };
+    case "device_serial_number": return { device: { serial_number: dir } };
+    case "borrow_status": return { borrow_status: dir };
+    case "borrow_date": return { borrow_date: dir };
+    case "return_date": return { return_date: dir };
+    case "created": return { created: dir };
+    default:
+      console.error("Bad sort field argument! ", field);
+      return undefined;
+  }
+}
+
+const searchAdapter = (field, q) => {
+  const validStatus = [
+    "Submitted",
+    "Scheduled",
+    "Cancelled",
+    "Checked_out",
+    "Checked_in",
+    "Late"
+  ];
+
+  switch (field) {
+    case "borrow_id": return isNaN(q) ? undefined : { borrow_id: q };
+    case "first_name": return { user: { first_name: { contains: q } } };
+    case "borrow_status": return { borrow_status: { in: validStatus.filter(x => x.toLowerCase().startsWith(q.toLowerCase())) } };
+    case "device": return { device: { OR: [{ brand: { contains: q } }, { make: { contains: q } }, { model: { contains: q } }, { type: { contains: q } }] } };
+    case "device_serial_number": return { device: { serial_number: { contains: q } } };
+    default:
+      console.error("Bad search field argument! ", field);
+      return undefined;
+  }
+}
+
 // Get all borrow records (Admin only)
 router.get("/getall",
-  ensureAdminAuth, populatePaging, populateSort,
+  ensureAdminAuth, populatePaging, populateSort(sortAdapter), populateSearch(["borrow_id", "first_name", "borrow_status", "device", "device_serial_number"], searchAdapter),
   async (req, res) => {
     try {
       const { pagingConf, whereConf, orderByConf } = req;
 
       //TODO: Where needs to be usable on fields inside of usser too.
-      const records = await prisma.borrow.findMany({
+      const data = await prisma.borrow.findMany({
         include: {
           user: {
             select: {
@@ -166,7 +205,10 @@ router.get("/getall",
         ...whereConf,
         ...orderByConf
       });
-      res.json(records);
+
+      const count = await prisma.borrow.count(whereConf);
+
+      res.json({ data, count });
     } catch (error) {
       console.error(error);
       res.status(500).send("Failed to retrieve borrow records.");

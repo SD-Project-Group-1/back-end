@@ -9,13 +9,14 @@ datasource db {
 }
 
 model admin {
-  admin_id   Int    @id @default(autoincrement())
-  email      String @db.VarChar(255)
-  hash       String @db.VarChar(255)
-  salt       String @db.VarChar(255)
-  first_name String @db.VarChar(255)
-  last_name  String @db.VarChar(255)
-  role       String @db.VarChar(255)
+  admin_id   Int      @id @default(autoincrement())
+  email      String   @db.VarChar(255)
+  hash       String   @db.VarChar(255)
+  salt       String   @db.VarChar(255)
+  first_name String   @db.VarChar(255)
+  last_name  String   @db.VarChar(255)
+  role       String   @db.VarChar(255)
+  created    DateTime @default(now())
 }
 
 model borrow {
@@ -31,6 +32,7 @@ model borrow {
   reason_for_borrow       borrow_reason_for_borrow
   user                    user                            @relation(fields: [user_id], references: [user_id], onUpdate: Restrict, map: "borrow_ibfk_1")
   device                  device                          @relation(fields: [device_id], references: [device_id], onUpdate: Restrict, map: "borrow_ibfk_2")
+  created                 DateTime                        @default(now())
 
   @@index([device_id], map: "device_id")
   @@index([user_id], map: "user_id")
@@ -46,6 +48,7 @@ model device {
   location_id   Int
   borrow        borrow[]
   location      location @relation(fields: [location_id], references: [location_id], onUpdate: Restrict, map: "device_ibfk_1")
+  created       DateTime @default(now())
 
   @@index([location_id], map: "location_id")
 }
@@ -73,6 +76,7 @@ model user {
   state          String   @db.Char(2)
   zip_code       String   @db.Char(5)
   dob            DateTime @db.Date
+  created        DateTime @default(now())
   borrow         borrow[]
 }
 

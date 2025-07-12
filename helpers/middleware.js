@@ -69,11 +69,11 @@ const populatePaging = async (req, _res, next) => {
   next();
 }
 
-const populateSearch = (searchableFields) => {
+const populateSearch = (searchableFields, searchAdapter) => {
   return async (req, _res, next) => {
     const { q } = req.query;
 
-    if (!q || !searchableFields?.length) {
+    if (!q || !searchableFields?.length || !searchAdapter) {
       req.whereConf = {};
       next();
       return;
@@ -81,40 +81,32 @@ const populateSearch = (searchableFields) => {
 
     const whereConf = {
       where: {
-        OR: []
+        OR: searchableFields.map((field) => searchAdapter(field, q))
       }
     }
-
-    whereConf.where.OR = searchableFields.map((field) => {
-      let obj = {};
-      obj[field] = { contains: q }
-
-      return obj;
-    });
 
     req.whereConf = whereConf;
     next();
   }
 }
 
-const populateSort = async (req, _res, next) => {
-  const { sortBy, sortDir } = req.query;
+const populateSort = (sortAdapter) => {
+  return async (req, _res, next) => {
+    const { sortBy, sortDir } = req.query;
 
-  if (!sortBy || !sortDir || sortDir !== "asc" && sortDir !== "desc") {
-    req.orderByConf = {};
-    next();
-    return;
-  }
-
-  const orderByConf = {
-    orderBy: {
-
+    if (!sortBy || !sortDir || sortDir !== "asc" && sortDir !== "desc") {
+      req.orderByConf = {};
+      next();
+      return;
     }
-  }
 
-  orderByConf.orderBy[sortBy] = sortDir;
-  req.orderByConf = orderByConf;
-  next();
+    const orderByConf = {
+      orderBy: sortAdapter(sortBy, sortDir)
+    }
+
+    req.orderByConf = orderByConf;
+    next();
+  }
 }
 
 module.exports = { ensureAnyAuth, ensureUserAuth, ensureAdminAuth, populatePaging, populateSort, populateSearch };
