@@ -137,6 +137,12 @@ router.post("/create", ensureAnyAuth, async (req, res) => {
 const sortAdapter = (field, dir) => {
   switch (field) {
     case "first_name": return { user: { first_name: dir } };
+    case "last_name": return { user: { last_name: dir } };
+    case "device": return { device: { brand: dir }, device: { make: dir }, device: { model: dir } };
+    case "device_serial_number": return { device: { serial_number: dir } };
+    case "borrow_status": return { borrow_status: dir };
+    case "borrow_date": return { borrow_date: dir };
+    case "return_date": return { return_date: dir };
     default:
       console.error("Bad sort field argument! ", field);
       return undefined;
@@ -144,8 +150,20 @@ const sortAdapter = (field, dir) => {
 }
 
 const searchAdapter = (field, q) => {
+  const validStatus = [
+    "Submitted",
+    "Scheduled",
+    "Cancelled",
+    "Checked_out",
+    "Checked_in",
+    "Late"
+  ];
+
   switch (field) {
-    case "first_name": return { user: { first_name: { contains: q } } }
+    case "first_name": return { user: { first_name: { contains: q } } };
+    case "borrow_status": return { borrow_status: { in: validStatus.filter(x => x.toLowerCase().startsWith(q.toLowerCase())) } };
+    case "device": return { device: { OR: [{ brand: { contains: q } }, { make: { contains: q } }, { model: { contains: q } }, { type: { contains: q } }] } };
+    case "device_serial_number": return { device: { serial_number: { contains: q } } };
     default:
       console.error("Bad search field argument! ", field);
       return undefined;
@@ -154,7 +172,7 @@ const searchAdapter = (field, q) => {
 
 // Get all borrow records (Admin only)
 router.get("/getall",
-  ensureAdminAuth, populatePaging, populateSort(sortAdapter), populateSearch(["first_name"], searchAdapter),
+  ensureAdminAuth, populatePaging, populateSort(sortAdapter), populateSearch(["first_name", "borrow_status", "device", "device_serial_number"], searchAdapter),
   async (req, res) => {
     try {
       const { pagingConf, whereConf, orderByConf } = req;
