@@ -1,6 +1,6 @@
 const { json, Router } = require("express");
 const prisma = require("../config/db");
-const { ensureAdminAuth, populatePaging, populateSearch, populateSort } = require("../helpers/middleware");
+const { ensureAdminAuth, populatePaging, populateSearch, populateSort, ensureAnyAuth } = require("../helpers/middleware");
 
 const router = Router();
 router.use(json());
@@ -60,6 +60,39 @@ router.get("/getall",
     }
   });
 
+router.get("/available", ensureAnyAuth, async (_req, res) => {
+  try {
+    const devices = await prisma.device.findMany({
+      include: {
+        borrow: {
+          orderBy: { borrow_date: "desc" },
+          take: 1
+        }
+      }
+    });
+
+    const grouped = {};
+
+    for (const d of devices) {
+      const type = d.type || "Unknown";
+      const latestBorrow = d.borrow[0];
+      const isAvailable = !latestBorrow || latestBorrow.borrow_status === "Checked_in";
+
+      if (!grouped[type]) grouped[type] = { deviceType: type, available: true };
+
+      // Mark as unavailable if any device of this type isn't available
+      if (!isAvailable) grouped[type].available = false;
+    }
+
+    const data = Object.values(grouped);
+
+    res.send({ data });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Failed to get.");
+  }
+})
+
 router.get("/get/:deviceId", ensureAdminAuth, async (req, res) => {
   const deviceId = parseInt(req.params.deviceId);
 
@@ -100,7 +133,7 @@ router.post("/create", ensureAdminAuth, async (req, res) => {
         type,
         serial_number,
         location: {
-          connect: {location_id: parseInt(location_id) }
+          connect: { location_id: parseInt(location_id) }
         }
       },
     });
