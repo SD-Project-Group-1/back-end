@@ -27,8 +27,6 @@ model borrow {
   return_date             DateTime?                       @db.Date
   borrow_status           borrow_borrow_status            @default(Submitted)
   device_return_condition borrow_device_return_condition? @default(Good)
-  user_location           String?                         @db.VarChar(255)
-  device_location         String?                         @db.VarChar(255)
   reason_for_borrow       borrow_reason_for_borrow
   user                    user?                           @relation(fields: [user_id], references: [user_id], onUpdate: Restrict, map: "borrow_ibfk_1")
   device                  device                          @relation(fields: [device_id], references: [device_id], onUpdate: Restrict, map: "borrow_ibfk_2")
@@ -60,6 +58,7 @@ model location {
   city              String   @db.VarChar(255)
   state             String   @db.Char(2)
   zip_code          String   @db.Char(5)
+  phone             String?
   device            device[]
 }
 
