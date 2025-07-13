@@ -209,7 +209,7 @@ router.delete("/delete/:adminId", ensureAdminAuth, async (req, res) => {
     if (deletedAdmin) {
       res.send("Admin deleted succesfully!");
     } else {
-      res.status(400).send("No such admin.");
+      res.status(404).send("No such admin.");
     }
   } catch (err) {
     res.status(500).send("Failed to delete.");
