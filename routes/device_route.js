@@ -1,6 +1,6 @@
 const { json, Router } = require("express");
 const prisma = require("../config/db");
-const { ensureAdminAuth, populatePaging, populateSearch, populateSort } = require("../helpers/middleware");
+const { ensureAdminAuth, populatePaging, populateSearch, populateSort, ensureAnyAuth } = require("../helpers/middleware");
 
 const router = Router();
 router.use(json());
@@ -10,7 +10,7 @@ router.use(json());
 const sortAdapter = (field, dir) => {
   switch (field) {
     case "device_id": return { device_id: dir };
-    case "device": return { device: { brand: dir }, device: { make: dir }, device: { model: dir } };
+    case "device": return { device: { model: dir }, device: { make: dir }, device: { brand: dir } };
     case "brand": return { brand: dir };
     case "make": return { make: dir };
     case "model": return { model: dir };
@@ -26,7 +26,7 @@ const sortAdapter = (field, dir) => {
 
 const searchAdapter = (field, q) => {
   switch (field) {
-    case "device_id": return isNaN(q) ? undefined : { device_id: Number.parseInt(q) };
+    case "device_id": return isNaN(q) ? {} : { device_id: Number.parseInt(q) };
     case "brand": return { brand: { contains: q } };
     case "make": return { make: { contains: q } };
     case "model": return { model: { contains: q } };
@@ -59,6 +59,39 @@ router.get("/getall",
       console.error(err);
     }
   });
+
+router.get("/available", ensureAnyAuth, async (_req, res) => {
+  try {
+    const devices = await prisma.device.findMany({
+      include: {
+        borrow: {
+          orderBy: { borrow_date: "desc" },
+          take: 1
+        }
+      }
+    });
+
+    const grouped = {};
+
+    for (const d of devices) {
+      const type = d.type || "Unknown";
+      const latestBorrow = d.borrow[0];
+      const isAvailable = !latestBorrow || latestBorrow.borrow_status === "Checked_in";
+
+      if (!grouped[type]) grouped[type] = { deviceType: type, available: true };
+
+      // Mark as unavailable if any device of this type isn't available
+      if (!isAvailable) grouped[type].available = false;
+    }
+
+    const data = Object.values(grouped);
+
+    res.send({ data });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Failed to get.");
+  }
+})
 
 router.get("/get/:deviceId", ensureAdminAuth, async (req, res) => {
   const deviceId = parseInt(req.params.deviceId);
@@ -100,7 +133,7 @@ router.post("/create", ensureAdminAuth, async (req, res) => {
         type,
         serial_number,
         location: {
-          connect: {location_id: parseInt(location_id) }
+          connect: { location_id: parseInt(location_id) }
         }
       },
     });

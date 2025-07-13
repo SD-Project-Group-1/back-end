@@ -218,7 +218,7 @@ router.delete("/delete/:userId", ensureAnyAuth, async (req, res) => {
       where: {
         user_id: requestedId,
         borrow_status: {
-          notIn: ["Canceled", "Checked_in"],
+          notIn: ["Cancelled", "Checked_in"],
         },
       },
     });
@@ -246,10 +246,11 @@ const sortAdapter = (field, dir) => {
   switch (field) {
     case "user_id": return { user_id: dir };
     case "email": return { email: dir };
-    case "name": return { first_name: dir, last_name: dir };
+    case "name": return { last_name: dir, first_name: dir };
     case "first_name": return { first_name: dir };
     case "last_name": return { last_name: dir };
     case "dob": return { dob: dir };
+    case "zip_code": return { zip_code: dir }
     case "created": return { created: dir };
     default:
       console.error("Bad sort field argument! ", field);
@@ -259,10 +260,11 @@ const sortAdapter = (field, dir) => {
 
 const searchAdapter = (field, q) => {
   switch (field) {
-    case "user_id": return isNaN(num) ? undefined : { user_id: Number.parseInt(q) };
+    case "user_id": return isNaN(q) ? {} : { user_id: Number.parseInt(q) };
     case "email": return { email: { contains: q } };
     case "first_name": return { first_name: { contains: q } };
     case "last_name": return { last_name: { contains: q } };
+    case "zip_code": return { zip_code: { contains: q } }
     default:
       console.error("Bad search field argument! ", field);
       return undefined;
@@ -270,7 +272,7 @@ const searchAdapter = (field, q) => {
 }
 
 router.get("/getall",
-  ensureAdminAuth, populatePaging, populateSearch(["user_id", "email", "first_name", "last_name"], searchAdapter), populateSort(sortAdapter),
+  ensureAdminAuth, populatePaging, populateSearch(["user_id", "email", "first_name", "last_name", "zip_code"], searchAdapter), populateSort(sortAdapter),
   async (req, res) => {
     const { pagingConf, whereConf, orderByConf } = req;
 

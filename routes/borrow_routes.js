@@ -11,28 +11,40 @@ router.get("/ping", (req, res) => {
 });
 
 router.get("/requested/:userId", ensureAnyAuth, async (req, res) => {
-  if (req.role === "user" && req.params.userId !== req.id) {
+  if (isNaN(req.params.userId)) {
+    res.status(400).send("Bad request");
+    return;
+  }
+
+  const userId = parseInt(req.params.userId);
+
+  if (req.role === "user" && userId !== req.id) {
     res.status(401).send("Not authorized");
     return;
   }
 
-  const request = await prisma.borrow.findFirst({
-    where: {
-      user_id: req.id,
-      borrow_status: {
-        not: "Checked_in"
-      }
-    },
-    include: {
-      device: {
-        include: {
-          location: true
+  try {
+    const request = await prisma.borrow.findFirst({
+      where: {
+        user_id: userId,
+        borrow_status: {
+          not: "Checked_in"
         }
       },
-    }
-  });
+      include: {
+        device: {
+          include: {
+            location: true
+          }
+        },
+      }
+    });
 
-  res.json(request);
+    res.json(request);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Request failed.");
+  }
 })
 
 // Create borrow record: Users can submit requests; only admins can set status and condition
@@ -44,12 +56,20 @@ router.post("/create", ensureAnyAuth, async (req, res) => {
     return_date,
     borrow_status,
     device_return_condition,
-    user_location,
-    device_location,
-    reason_for_borrow
+    location_id,
+    reason_for_borrow,
+    preferred_type
   } = req.body;
 
   reason_for_borrow = reason_for_borrow.replace(' ', '_');
+  preferred_type = preferred_type?.replace(' ', '_');
+
+  if (isNaN(location_id)) {
+    res.status(400).send("Bad location id");
+    return;
+  }
+
+  location_id = parseInt(location_id);
 
   const validStatus = ["Scheduled", "Cancelled", "Checked out", "Checked in", "Late", "Submitted"];
   const validConditions = ["Good", "Fair", "Damaged"];
@@ -64,59 +84,55 @@ router.post("/create", ensureAnyAuth, async (req, res) => {
     device_return_condition = device_return_condition || null;  // Admins can set or leave null
   }
 
-  if (!device_id) {
-    const device = await prisma.device.findFirst({
-      where: {
-        location: {
-          location_nickname: {
-            contains: device_location,
-          }
-        },
-        OR: [
-          {
-            borrow: {
-              none: {},
-            },
+  try {
+    if (!device_id) {
+      const device = await prisma.device.findFirst({
+        where: {
+          location: {
+            location_id: location_id
           },
-          {
-            borrow: {
-              every: {
-                borrow_status: 'Checked_in',
+          type: preferred_type ?? undefined,
+          OR: [
+            {
+              borrow: {
+                none: {},
               },
             },
-          },
-        ],
-      }
-    });
+            {
+              borrow: {
+                every: {
+                  borrow_status: 'Checked_in',
+                },
+              },
+            },
+          ],
+        }
+      });
 
-    if (!device) {
-      console.error("Could not find a device to borrow!");
-      res.status(400).send("Could not find a device to borrow!")
-      return;
+      if (!device) {
+        console.error("Could not find a device to borrow!");
+        res.status(400).send("Could not find a device to borrow!")
+        return;
+      }
+
+      device_id = device.device_id;
     }
 
-    device_id = device.device_id;
-  }
+    if (!user_id || !device_id || !borrow_date || !reason_for_borrow) {
+      return res.status(400).send("Missing required fields.");
+    }
 
-  if (!user_id || !device_id || !borrow_date || !reason_for_borrow) {
-    return res.status(400).send("Missing required fields.");
-  }
-
-  if (!validStatus.includes(borrow_status) ||
-    (device_return_condition && !validConditions.includes(device_return_condition)) ||
-    !validReasons.includes(reason_for_borrow)) {
-    return res.status(400).send("Invalid enum value provided.");
-  }
-
-  try {
+    if (!validStatus.includes(borrow_status) ||
+      (device_return_condition && !validConditions.includes(device_return_condition)) ||
+      !validReasons.includes(reason_for_borrow)) {
+      return res.status(400).send("Invalid enum value provided.");
+    }
     const borrow = await prisma.borrow.create({
       data: {
         borrow_date: new Date(borrow_date),
         return_date: return_date ? new Date(return_date) : null,
         borrow_status,
         device_return_condition,
-        user_location,
-        device_location,
         reason_for_borrow,
         user: {
           connect: { user_id: user_id }
@@ -137,9 +153,10 @@ router.post("/create", ensureAnyAuth, async (req, res) => {
 const sortAdapter = (field, dir) => {
   switch (field) {
     case "borrow_id": return { borrow_id: dir };
+    case "name": return { user: { last_name: dir }, user: { first_name: dir } };
     case "first_name": return { user: { first_name: dir } };
     case "last_name": return { user: { last_name: dir } };
-    case "device": return { device: { brand: dir }, device: { make: dir }, device: { model: dir } };
+    case "device": return { device: { model: dir }, device: { make: dir }, device: { brand: dir } };
     case "device_serial_number": return { device: { serial_number: dir } };
     case "borrow_status": return { borrow_status: dir };
     case "borrow_date": return { borrow_date: dir };
@@ -162,7 +179,7 @@ const searchAdapter = (field, q) => {
   ];
 
   switch (field) {
-    case "borrow_id": return isNaN(q) ? undefined : { borrow_id: q };
+    case "borrow_id": return isNaN(q) ? {} : { borrow_id: q };
     case "first_name": return { user: { first_name: { contains: q } } };
     case "borrow_status": return { borrow_status: { in: validStatus.filter(x => x.toLowerCase().startsWith(q.toLowerCase())) } };
     case "device": return { device: { OR: [{ brand: { contains: q } }, { make: { contains: q } }, { model: { contains: q } }, { type: { contains: q } }] } };
@@ -275,7 +292,7 @@ router.get("/user/:userId", ensureAnyAuth, async (req, res) => {
       where: { user_id: userId },
       include: {
         device: {
-          include: {location: true}
+          include: { location: true }
         }
       }
     });
@@ -317,7 +334,7 @@ router.get("/device/:deviceId", ensureAdminAuth, async (req, res) => {
 });
 
 // Update borrow record (Admin only)
-router.patch("/update/:borrowId", ensureAdminAuth, async (req, res) => {
+router.patch("/update/:borrowId", ensureAnyAuth, async (req, res) => {
   const borrowId = parseInt(req.params.borrowId);
   const { borrow_status, return_date, device_return_condition } = req.body;
 
@@ -326,8 +343,28 @@ router.patch("/update/:borrowId", ensureAdminAuth, async (req, res) => {
       where: { borrow_id: borrowId }
     });
 
+    borrow_status = borrow_status ?? record.borrow_status;
+    return_date = return_date ?? record.return_date;
+
     if (!record) {
       return res.status(404).send("Borrow record not found.");
+    }
+
+    if (req.role === "user") {
+      if (record.user_id !== req.id) {
+        res.status(401).send("Cannot edit this request.");
+        return;
+      }
+
+      if (record.borrow_status !== "Submitted" && return_date !== record.return_date) {
+        res.status(401).send("Cannot change the date of a request that is past the \"submitted\" stage.");
+        return;
+      }
+
+      if (record.borrow_status === "Checked_out") {
+        res.status(401).send("Cannot edit a request that has already been granted. Please return this device to the store for further transactions.");
+        return;
+      }
     }
 
     const updated = await prisma.borrow.update({

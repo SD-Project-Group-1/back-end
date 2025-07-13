@@ -2,7 +2,7 @@ const NodeGeocoder = require('node-geocoder');
 
 const options = {
     provider: 'locationiq',
-    apiKey: 'you-api-key-here',
+    apiKey: process.env.LOCATIONIQ_API_KEY,
     _formatter: null,
 };
 
