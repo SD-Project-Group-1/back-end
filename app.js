@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require("express");
 
 const userRoutes = require("./routes/user_routes.js");
@@ -9,6 +10,7 @@ const zipcodeRoutes = require("./routes/zipcode_routes");
 const cookieParser = require("cookie-parser");
 const prisma = require("./config/db.js");
 const { ensureAnyAuth } = require("./helpers/middleware.js");
+const authRoutes = require("./routes/auth_routes.js")
 
 const app = express();
 
@@ -21,6 +23,7 @@ app.use("/api/devices", deviceRoutes);
 app.use("/api/locations", locationRoutes);
 app.use("/api/borrow", borrowRoutes);
 app.use("/api/zipcode", zipcodeRoutes);
+app.use("/auth", authRoutes);
 app.get("/api/me", ensureAnyAuth, async (req, res) => {
   try {
     if (req.role === "user") {

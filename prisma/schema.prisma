@@ -77,6 +77,18 @@ model user {
   dob            DateTime @db.Date
   created        DateTime @default(now())
   borrow         borrow[]
+  passwordResets  passwordReset[]
+}
+
+model passwordReset {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  token      String   @unique @db.VarChar(255)
+  expires_at DateTime
+  used       Boolean  @default(false)
+  user       user     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@map("password_resets") // Optional: maps to MySQL table name
 }
 
 enum borrow_borrow_status {
