@@ -28,7 +28,7 @@ router.get("/requested/:userId", ensureAnyAuth, async (req, res) => {
       where: {
         user_id: userId,
         borrow_status: {
-          not: "Checked_in"
+          notIn: ["Checked_in", "Cancelled"]
         }
       },
       include: {
@@ -337,10 +337,27 @@ router.get("/device/:deviceId", ensureAdminAuth, async (req, res) => {
   }
 });
 
+const validateDate = (date, maxDays) => {
+  date = new Date(date);
+
+  if (isNaN(date))
+    return false;
+
+  if (!date || date.valueOf() < Date.now()) {
+    return false;
+  }
+
+  if (maxDays && date.valueOf() > Date.now() + (maxDays * 24 * 60 * 60 * 1000)) {
+    return false;
+  }
+
+  return true;
+}
+
 // Update borrow record (Admin only)
 router.patch("/update/:borrowId", ensureAnyAuth, async (req, res) => {
   const borrowId = parseInt(req.params.borrowId);
-  let { borrow_status, return_date, device_return_condition, device_id } = req.body;
+  let { borrow_status, return_date, device_return_condition, device_id, borrow_date } = req.body;
 
   try {
     const record = await prisma.borrow.findUnique({
@@ -349,6 +366,11 @@ router.patch("/update/:borrowId", ensureAnyAuth, async (req, res) => {
 
     borrow_status = borrow_status ?? record.borrow_status;
     return_date = return_date ?? record.return_date;
+    borrow_date = borrow_date ?? record.borrow_date;
+
+    if (return_date && !validateDate(return_date) || !validateDate(borrow_date, 30)) {
+      return res.status(400).send("Could not vlaidate all dates!");
+    }
 
     if (!record) {
       return res.status(404).send("Borrow record not found.");
@@ -360,7 +382,12 @@ router.patch("/update/:borrowId", ensureAnyAuth, async (req, res) => {
         return;
       }
 
-      if (record.borrow_status !== "Submitted" && return_date !== record.return_date) {
+      if (return_date !== record.return_date) {
+        res.status(401).send("A user may not change the return date!");
+        return;
+      }
+
+      if (record.borrow_status !== "Submitted" && borrow_status !== record.borrow_status) {
         res.status(401).send("Cannot change the date of a request that is past the \"submitted\" stage.");
         return;
       }
@@ -390,6 +417,7 @@ router.patch("/update/:borrowId", ensureAnyAuth, async (req, res) => {
       include: { user: true, device: { include: { location: true } } },
       data: {
         borrow_status,
+        borrow_date: borrow_status ? new Date(borrow_date) : undefined,
         return_date: return_date ? new Date(return_date) : undefined,
         device_return_condition,
         device: {
