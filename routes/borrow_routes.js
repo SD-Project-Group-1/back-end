@@ -85,8 +85,8 @@ router.post("/create", ensureAnyAuth, async (req, res) => {
   }
 
   try {
-    if (!device_id) {
-      const device = await prisma.device.findFirst({
+    const device = device_id ? await prisma.device.findUnique({ where: { device_id: device_id }, include: { borrow: true } }) :
+      await prisma.device.findFirst({
         where: {
           location: {
             location_id: location_id
@@ -101,22 +101,27 @@ router.post("/create", ensureAnyAuth, async (req, res) => {
             {
               borrow: {
                 every: {
-                  borrow_status: 'Checked_in',
+                  borrow_status: { in: ["Checked_in", "Cancelled"] }
                 },
               },
-            },
+            }
           ],
-        }
+        },
+        include: { borrow: true }
       });
 
-      if (!device) {
-        console.error("Could not find a device to borrow!");
-        res.status(400).send("Could not find a device to borrow!")
-        return;
-      }
-
-      device_id = device.device_id;
+    if (!device) {
+      console.error("Could not find a device to borrow!");
+      res.status(400).send("Could not find a device to borrow!")
+      return;
     }
+
+    if (device.borrow.some(x => x.borrow_status === "Submitted" || x.borrow_status === "Checked_out" || x.borrow_status === "Scheduled")) {
+      res.status(400).send("This device is already reserved.");
+      return;
+    }
+
+    device_id = device.device_id;
 
     if (!user_id || !device_id || !borrow_date || !reason_for_borrow) {
       return res.status(400).send("Missing required fields.");
@@ -197,7 +202,6 @@ router.get("/getall",
     try {
       const { pagingConf, whereConf, orderByConf } = req;
 
-      //TODO: Where needs to be usable on fields inside of usser too.
       const data = await prisma.borrow.findMany({
         include: {
           user: {
@@ -336,7 +340,7 @@ router.get("/device/:deviceId", ensureAdminAuth, async (req, res) => {
 // Update borrow record (Admin only)
 router.patch("/update/:borrowId", ensureAnyAuth, async (req, res) => {
   const borrowId = parseInt(req.params.borrowId);
-  const { borrow_status, return_date, device_return_condition } = req.body;
+  let { borrow_status, return_date, device_return_condition, device_id } = req.body;
 
   try {
     const record = await prisma.borrow.findUnique({
@@ -365,14 +369,33 @@ router.patch("/update/:borrowId", ensureAnyAuth, async (req, res) => {
         res.status(401).send("Cannot edit a request that has already been granted. Please return this device to the store for further transactions.");
         return;
       }
+
+      if (device_id !== undefined) {
+        res.status(401).send("A user may not specify the exact device.");
+        return;
+      }
+    }
+
+    if (device_id) {
+      const device = await prisma.device.findUnique({ where: { device_id }, include: { borrow: true } });
+
+      if (device.borrow.some(x => x.borrow_status === "Submitted" || x.borrow_status === "Checked_out" || x.borrow_status === "Scheduled")) {
+        res.status(400).send("This device is already reserved.");
+        return;
+      }
     }
 
     const updated = await prisma.borrow.update({
       where: { borrow_id: borrowId },
+      include: { user: true, device: { include: { location: true } } },
       data: {
         borrow_status,
         return_date: return_date ? new Date(return_date) : undefined,
-        device_return_condition
+        device_return_condition,
+        device: {
+          disconnect: device_id === null ? true : undefined,
+          connect: device_id ? { device_id: device_id } : undefined
+        }
       }
     });
 

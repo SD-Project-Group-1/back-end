@@ -5,8 +5,6 @@ const { ensureAdminAuth, populatePaging, populateSearch, populateSort, ensureAny
 const router = Router();
 router.use(json());
 
-
-
 const sortAdapter = (field, dir) => {
   switch (field) {
     case "device_id": return { device_id: dir };
@@ -25,6 +23,12 @@ const sortAdapter = (field, dir) => {
 }
 
 const searchAdapter = (field, q) => {
+  if (q.startsWith("$location_id=")) {
+    q = q.slice(13);
+
+    return isNaN(q) ? {} : { location: { location_id: parseInt(q) } };
+  }
+
   switch (field) {
     case "device_id": return isNaN(q) ? {} : { device_id: Number.parseInt(q) };
     case "brand": return { brand: { contains: q } };
@@ -32,6 +36,7 @@ const searchAdapter = (field, q) => {
     case "model": return { model: { contains: q } };
     case "type": return { type: { contains: q } };
     case "serial_number": return { serial_number: { contains: q } };
+    case "location": return { location: { location_nickname: { contains: q } } };
     default:
       console.error("Bad search field argument! ", field);
       return undefined;
@@ -60,9 +65,19 @@ router.get("/getall",
     }
   });
 
-router.get("/available", ensureAnyAuth, async (_req, res) => {
+router.get("/available", ensureAnyAuth, async (req, res) => {
+  const { locationId } = req.query;
+
+  if (isNaN(locationId)) {
+    res.status(400).send("No loation provided.");
+    return;
+  }
+
   try {
     const devices = await prisma.device.findMany({
+      where: {
+        location_id: locationId
+      },
       include: {
         borrow: {
           orderBy: { borrow_date: "desc" },
