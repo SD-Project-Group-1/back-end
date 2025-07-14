@@ -79,6 +79,16 @@ const populateSearch = (searchableFields, searchAdapter) => {
       return;
     }
 
+    if (q.startsWith("$")) {
+      const whereConf = {
+        where: searchAdapter("", q)
+      }
+
+      req.whereConf = whereConf;
+      next();
+      return;
+    }
+
     const whereConf = {
       where: {
         OR: searchableFields.map((field) => searchAdapter(field, q))

@@ -22,14 +22,14 @@ model admin {
 model borrow {
   borrow_id               Int                             @id @default(autoincrement())
   user_id                 Int?
-  device_id               Int
+  device_id               Int?
   borrow_date             DateTime                        @db.Date
   return_date             DateTime?                       @db.Date
   borrow_status           borrow_borrow_status            @default(Submitted)
   device_return_condition borrow_device_return_condition? @default(Good)
   reason_for_borrow       borrow_reason_for_borrow
   user                    user?                           @relation(fields: [user_id], references: [user_id], onUpdate: Restrict, map: "borrow_ibfk_1")
-  device                  device                          @relation(fields: [device_id], references: [device_id], onUpdate: Restrict, map: "borrow_ibfk_2")
+  device                  device?                         @relation(fields: [device_id], references: [device_id], onUpdate: Restrict, map: "borrow_ibfk_2")
   created                 DateTime                        @default(now())
 
   @@index([device_id], map: "device_id")
