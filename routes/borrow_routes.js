@@ -71,9 +71,9 @@ router.post("/create", ensureAnyAuth, async (req, res) => {
 
   location_id = parseInt(location_id);
 
-  const validStatus = ["Scheduled", "Cancelled", "Checked out", "Checked in", "Late", "Submitted"];
+  const validStatus = ["Scheduled", "Cancelled", "Checked_out", "Checked_in", "Late", "Submitted"];
   const validConditions = ["Good", "Fair", "Damaged"];
-  const validReasons = ["Job Search", "School", "Training", "Other"];
+  const validReasons = ["Job_Search", "School", "Training", "Other"];
 
   // Enforce defaults and prevent override if not admin
   if (req.role !== "admin") {
