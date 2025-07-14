@@ -66,12 +66,14 @@ router.get("/getall",
   });
 
 router.get("/available", ensureAnyAuth, async (req, res) => {
-  const { locationId } = req.query;
+  let { locationId } = req.query;
 
   if (isNaN(locationId)) {
     res.status(400).send("No loation provided.");
     return;
   }
+
+  locationId = parseInt(locationId);
 
   try {
     const devices = await prisma.device.findMany({
