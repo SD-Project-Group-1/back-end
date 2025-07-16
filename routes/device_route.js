@@ -93,7 +93,7 @@ router.get("/available", ensureAnyAuth, async (req, res) => {
     for (const d of devices) {
       const type = d.type || "Unknown";
       const latestBorrow = d.borrow[0];
-      const isAvailable = !latestBorrow || latestBorrow.borrow_status === "Checked_in";
+      const isAvailable = !latestBorrow || latestBorrow.borrow_status === "Checked_in" || latestBorrow.borrow_status === "Cancelled";
 
       if (!grouped[type]) grouped[type] = { deviceType: type, available: true };
 

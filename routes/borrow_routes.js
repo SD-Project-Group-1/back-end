@@ -369,7 +369,7 @@ router.patch("/update/:borrowId", ensureAnyAuth, async (req, res) => {
     borrow_date = borrow_date ?? record.borrow_date;
 
     if (return_date && !validateDate(return_date) || !validateDate(borrow_date, 30)) {
-      return res.status(400).send("Could not vlaidate all dates!");
+      return res.status(400).send("Could not validate all dates!");
     }
 
     if (!record) {
