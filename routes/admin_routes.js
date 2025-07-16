@@ -23,7 +23,7 @@ const sortAdapter = (field, dir) => {
 
 const searchAdapter = (field, q) => {
   switch (field) {
-    case "admin_id": return isNaN(num) ? {} : { admin_id: Number.parseInt(q) };
+    case "admin_id": return isNaN(q) ? {} : { admin_id: Number.parseInt(q) };
     case "email": return { email: { contains: q } };
     case "first_name": return { first_name: { contains: q } };
     case "last_name": return { last_name: { contains: q } };
@@ -173,8 +173,16 @@ router.get("/get/:adminId", ensureAdminAuth, async (req, res) => {
     return;
   }
 
+  try {
+    req.params.adminId = parseInt(req.params.adminId);
+  } catch (error) {
+  }
+
+  if (typeof req.params.adminId !== "number")
+    return res.status(400).send(`${req.params.adminId} is not a valid ID!`);
+
   const admin = await prisma.admin.findFirst({
-    where: { admin_id: req.adminId },
+    where: { admin_id: req.params.adminId },
   });
 
   if (admin === null) {
@@ -183,14 +191,11 @@ router.get("/get/:adminId", ensureAdminAuth, async (req, res) => {
   }
 
   res.status(200).json({
-    message: "Login successful",
-    admin: {
-      admin_id: admin.admin_id,
-      email: admin.email,
-      first_name: admin.first_name,
-      last_name: admin.last_name,
-      role: admin.role,
-    },
+    admin_id: admin.admin_id,
+    email: admin.email,
+    first_name: admin.first_name,
+    last_name: admin.last_name,
+    role: admin.role,
   });
 });
 
