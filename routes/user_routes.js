@@ -5,6 +5,7 @@ const { getUserToken } = require("../helpers/authentication");
 const { ensureUserAuth, ensureAdminAuth, ensureAnyAuth, populatePaging, populateSearch, populateSort } = require(
   "../helpers/middleware",
 );
+const { checkEligibility } = require("../helpers/eligibility");
 
 const getUserPayload = (user) => (
   {
@@ -65,6 +66,13 @@ router.post("/create", async (req, res) => {
       !dob,
     );
     res.status(400).send("Missing user information.");
+    return;
+  }
+
+  // Check if user is within service area for account registration
+  const eligibility = await checkEligibility(zip_code);
+  if (!eligibility.eligible) {
+    res.status(400).json({ error: eligibility.reason });
     return;
   }
 
