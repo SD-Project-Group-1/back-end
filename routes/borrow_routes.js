@@ -365,15 +365,21 @@ router.patch("/update/:borrowId", ensureAnyAuth, async (req, res) => {
     });
 
     borrow_status = borrow_status ?? record.borrow_status;
-    return_date = return_date ?? record.return_date;
-    borrow_date = borrow_date ?? record.borrow_date;
 
-    if (return_date && !validateDate(return_date) || !validateDate(borrow_date, 30)) {
-      return res.status(400).send("Could not validate all dates!");
+    if (return_date && validateDate(return_date)) {
+      return_date = new Date(return_date);
+    } else if (return_date) {
+      return res.status(400).send(`Bad return date: ${return_date}`);
+    } else {
+      return_date = record.return_date;
     }
 
-    if (!record) {
-      return res.status(404).send("Borrow record not found.");
+    if (borrow_date && validateDate(borrow_date)) {
+      borrow_date = new Date(borrow_date);
+    } else if (borrow_date) {
+      return res.status(400).send(`Bad borrow date: ${borrow_date}`);
+    } else {
+      borrow_date = record.borrow_date;
     }
 
     if (req.role === "user") {
@@ -426,6 +432,8 @@ router.patch("/update/:borrowId", ensureAnyAuth, async (req, res) => {
         }
       }
     });
+
+    console.log(updated);
 
     res.json(updated);
   } catch (error) {
