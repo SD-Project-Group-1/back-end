@@ -433,8 +433,6 @@ router.patch("/update/:borrowId", ensureAnyAuth, async (req, res) => {
       }
     });
 
-    console.log(updated);
-
     res.json(updated);
   } catch (error) {
     console.error(error);
