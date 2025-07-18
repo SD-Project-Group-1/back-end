@@ -6,6 +6,7 @@ const { ensureUserAuth, ensureAdminAuth, ensureAnyAuth, populatePaging, populate
   "../helpers/middleware",
 );
 const { checkEligibility } = require("../helpers/eligibility");
+const { parse } = require("dotenv");
 
 const getUserPayload = (user) => (
   {
@@ -202,6 +203,71 @@ router.patch("/update", ensureUserAuth, async (req, res) => {
         zip_code,
         dob,
         is_verified
+      },
+    });
+    res.send("User information updated succesfully!");
+  } catch (err) {
+    res.status(500).send("Failed to update data.");
+    console.error(err);
+  }
+});
+
+router.patch("/update/:userId", ensureAnyAuth, async (req, res) => {
+  let {
+    email,
+    first_name,
+    last_name,
+    phone,
+    street_address,
+    city,
+    state,
+    zip_code,
+    dob,
+  } = req.body;
+
+  let userId = req.params.userId;
+
+  try {
+    userId = parseInt(userId);
+  } catch (error) {
+    console.error(error);
+    return res.status(400).send("Invalid user id.");
+  }
+
+  if (req.role === "user" && req.id !== userId) {
+    return res.status(403).send("Unauthorized");
+  }
+
+
+  if (
+    !email || !first_name || !last_name || !phone || !street_address || !city ||
+    !state || !zip_code || !dob
+  ) {
+    res.status(400).send("Missing user information.");
+    return;
+  }
+
+  if (typeof dob === "string") {
+    dob = new Date(dob);
+  }
+
+  if (await prisma.user.count({ where: { user_id: userId } }) === 0) {
+    return res.status(400).send(`Could not find a user with id: ${userId}`);
+  }
+
+  try {
+    await prisma.user.update({
+      where: { user_id: userId },
+      data: {
+        email,
+        first_name,
+        last_name,
+        phone,
+        street_address,
+        city,
+        state,
+        zip_code,
+        dob,
       },
     });
     res.send("User information updated succesfully!");
