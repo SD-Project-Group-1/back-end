@@ -170,12 +170,13 @@ router.patch("/update", ensureUserAuth, async (req, res) => {
     state,
     zip_code,
     dob,
+    is_verified
   } = req.body;
   //NOTE: These are a lot of fields. Maybe use ZOD?
 
   if (
     !email || !first_name || !last_name || !phone || !street_address || !city ||
-    !state || !zip_code || !dob
+    !state || !zip_code || !dob || !is_verified
   ) {
     res.status(400).send("Missing user information.");
     return;
@@ -184,6 +185,8 @@ router.patch("/update", ensureUserAuth, async (req, res) => {
   if (typeof dob === "string") {
     dob = new Date(dob);
   }
+
+  is_verified = is_verified === "true";
 
   try {
     await prisma.user.update({
@@ -198,6 +201,7 @@ router.patch("/update", ensureUserAuth, async (req, res) => {
         state,
         zip_code,
         dob,
+        is_verified
       },
     });
     res.send("User information updated succesfully!");
@@ -297,6 +301,8 @@ router.get("/getall",
           state: true,
           zip_code: true,
           dob: true,
+          is_verified: true,
+          created: true
         },
         ...pagingConf,
         ...whereConf,
@@ -339,6 +345,8 @@ router.get("/get/:userId", ensureAnyAuth, async (req, res) => {
       state: true,
       zip_code: true,
       dob: true,
+      is_verified: true,
+      created: true
     },
   });
 

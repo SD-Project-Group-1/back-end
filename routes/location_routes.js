@@ -39,10 +39,15 @@ router.get("/getall",
     try {
       const { pagingConf, whereConf, orderByConf } = req;
 
+      const includeDevices = req.query.includeDevices === "true";
+
       const data = await prisma.location.findMany({
         ...pagingConf,
         ...whereConf,
-        ...orderByConf
+        ...orderByConf,
+        include: {
+          device: includeDevices
+        }
       });
 
       const count = await prisma.location.count(whereConf);
@@ -57,6 +62,8 @@ router.get("/getall",
 router.get("/get/:locationId", ensureAdminAuth, async (req, res) => {
   const locationId = parseInt(req.params.locationId);
 
+  const includeDevices = req.query.includeDevices === "true";
+
   if (!locationId) {
     res.status(400).send("Bad request.");
     return;
@@ -65,9 +72,7 @@ router.get("/get/:locationId", ensureAdminAuth, async (req, res) => {
   try {
     const location = await prisma.location.findUnique({
       where: { location_id: locationId },
-      device: {
-        include: { location: true }
-      }
+      include: { device: includeDevices }
     });
 
     if (!location) {
