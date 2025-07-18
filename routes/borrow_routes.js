@@ -132,10 +132,26 @@ router.post("/create", ensureAnyAuth, async (req, res) => {
       !validReasons.includes(reason_for_borrow)) {
       return res.status(400).send("Invalid enum value provided.");
     }
+
+    // Borrow date validation
+    const parsedBorrowDate = new Date(borrow_date);
+    if (isNaN(parsedBorrowDate)) {
+      return res.status(400).send("Invalid borrow date.");
+    }
+
+    // User gets default 7-day return window
+    let parsedReturnDate = null;
+
+    if (req.role === "admin") {
+      parsedReturnDate = return_date ? new Date(return_date) : null;
+    } else {
+      parsedReturnDate = new Date(parsedBorrowDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+    }
+
     const borrow = await prisma.borrow.create({
       data: {
-        borrow_date: new Date(borrow_date),
-        return_date: return_date ? new Date(return_date) : null,
+        borrow_date: parsedBorrowDate,
+        return_date: parsedReturnDate,
         borrow_status,
         device_return_condition,
         reason_for_borrow,
