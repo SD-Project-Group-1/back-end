@@ -208,7 +208,7 @@ router.patch("/update", ensureUserAuth, async (req, res) => {
   }
 });
 
-router.patch("/update/:userId", ensureAdminAuth, async (req, res) => {
+router.patch("/update/:userId", ensureAnyAuth, async (req, res) => {
   let {
     email,
     first_name,
@@ -229,6 +229,11 @@ router.patch("/update/:userId", ensureAdminAuth, async (req, res) => {
     console.error(error);
     return res.status(400).send("Invalid user id.");
   }
+
+  if (req.role === "user" && req.id !== userId) {
+    return res.status(403).send("Unauthorized");
+  }
+
 
   if (
     !email || !first_name || !last_name || !phone || !street_address || !city ||
