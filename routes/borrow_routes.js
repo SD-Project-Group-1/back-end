@@ -232,6 +232,8 @@ router.get("/getall",
               state: true,
               zip_code: true,
               dob: true,
+              is_verified: true,
+              created: true
             }
           },
           device: {
@@ -277,7 +279,8 @@ router.get("/:borrowId", ensureAnyAuth, async (req, res) => {
             state: true,
             zip_code: true,
             dob: true,
-
+            is_verified: true,
+            created: true
           }
         },
         device: {
@@ -342,6 +345,7 @@ router.get("/device/:deviceId", ensureAdminAuth, async (req, res) => {
             state: true,
             zip_code: true,
             dob: true,
+            is_verified: true
           }
         }
       }
@@ -436,7 +440,25 @@ router.patch("/update/:borrowId", ensureAnyAuth, async (req, res) => {
 
     const updated = await prisma.borrow.update({
       where: { borrow_id: borrowId },
-      include: { user: true, device: { include: { location: true } } },
+      include: {
+        user: {
+          select: {
+            user_id: true,
+            email: true,
+            first_name: true,
+            last_name: true,
+            phone: true,
+            street_address: true,
+            city: true,
+            state: true,
+            zip_code: true,
+            dob: true,
+            is_verified: true,
+            created: true
+          }
+        }
+        , device: { include: { location: true } }
+      },
       data: {
         borrow_status,
         borrow_date: borrow_status ? new Date(borrow_date) : undefined,

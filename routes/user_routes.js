@@ -171,7 +171,6 @@ router.patch("/update", ensureUserAuth, async (req, res) => {
     state,
     zip_code,
     dob,
-    is_verified
   } = req.body;
   //NOTE: These are a lot of fields. Maybe use ZOD?
 
@@ -187,8 +186,6 @@ router.patch("/update", ensureUserAuth, async (req, res) => {
     dob = new Date(dob);
   }
 
-  is_verified = is_verified === "true";
-
   try {
     await prisma.user.update({
       where: { user_id: req.id },
@@ -202,7 +199,7 @@ router.patch("/update", ensureUserAuth, async (req, res) => {
         state,
         zip_code,
         dob,
-        is_verified
+        is_verified: false
       },
     });
     res.send("User information updated succesfully!");
@@ -223,6 +220,7 @@ router.patch("/update/:userId", ensureAnyAuth, async (req, res) => {
     state,
     zip_code,
     dob,
+    is_verified
   } = req.body;
 
   let userId = req.params.userId;
@@ -238,6 +236,9 @@ router.patch("/update/:userId", ensureAnyAuth, async (req, res) => {
     return res.status(403).send("Unauthorized");
   }
 
+  if (req.role === "user") {
+    is_verified = false;
+  }
 
   if (
     !email || !first_name || !last_name || !phone || !street_address || !city ||
@@ -249,6 +250,10 @@ router.patch("/update/:userId", ensureAnyAuth, async (req, res) => {
 
   if (typeof dob === "string") {
     dob = new Date(dob);
+  }
+
+  if (is_verified !== undefined && typeof is_verified !== "boolean") {
+    return res.status(400).send("Non-boolean value provided for is_verified.");
   }
 
   if (await prisma.user.count({ where: { user_id: userId } }) === 0) {
@@ -268,8 +273,10 @@ router.patch("/update/:userId", ensureAnyAuth, async (req, res) => {
         state,
         zip_code,
         dob,
+        is_verified: is_verified
       },
     });
+
     res.send("User information updated succesfully!");
   } catch (err) {
     res.status(500).send("Failed to update data.");
