@@ -7,7 +7,7 @@ const { ensureAnyAuth } = require("../helpers/middleware");
 const router = Router();
 router.use(json());
 
-router.post("/check", ensureAnyAuth, async (req, res) => {
+router.post("/check", async (req, res) => {
   const { zip_code } = req.body;
 
   if (!zip_code) {
@@ -51,5 +51,6 @@ router.post("/check", ensureAnyAuth, async (req, res) => {
     res.status(500).send("Failed to check zip code in range");
   }
 });
+
 module.exports = router;
 
