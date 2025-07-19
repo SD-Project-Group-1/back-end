@@ -441,19 +441,21 @@ router.patch("/update/:borrowId", ensureAnyAuth, async (req, res) => {
     const updated = await prisma.borrow.update({
       where: { borrow_id: borrowId },
       include: {
-        select: {
-          user_id: true,
-          email: true,
-          first_name: true,
-          last_name: true,
-          phone: true,
-          street_address: true,
-          city: true,
-          state: true,
-          zip_code: true,
-          dob: true,
-          is_verified: true,
-          created: true
+        user: {
+          select: {
+            user_id: true,
+            email: true,
+            first_name: true,
+            last_name: true,
+            phone: true,
+            street_address: true,
+            city: true,
+            state: true,
+            zip_code: true,
+            dob: true,
+            is_verified: true,
+            created: true
+          }
         }
         , device: { include: { location: true } }
       },
