@@ -78,4 +78,37 @@ router.post("/reset-password", async (req, res) => {
   res.json({ message: "Password reset successful" });
 });
 
+// POST /auth/admin-reset-request
+router.post("/admin-request-reset", async (req, res) => {
+  const { email } = req.body;
+
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  if (!user || user.role !== "admin") {
+    // Respond generically to avoid leaking info
+    return res.json({ message: "If an account exists, a reset email has been sent." });
+  }
+
+  const token = generateToken();
+  const expires = new Date(Date.now() + 1000 * 60 * 60); // 1 hour
+
+  await prisma.resetToken.create({
+    data: {
+      user_id: user.user_id,
+      token,
+      expires_at: expires,
+    },
+  });
+  
+  const resetLink = `${process.env.ADMIN_FRONTEND_URL}/reset-password?token=${token}`; // Remember to update this if necessary, located locally in .env and reiterated in example.env
+
+  await transporter.sendMail({
+    to: email,
+    subject: "Password Reset Request",
+    html: `<p>Click <a href="${resetLink}">here</a> to reset your password.</p>`,
+  });
+
+  res.json({ message: "If an account exists, a reset email has been sent." });
+});
+
 module.exports = router;
