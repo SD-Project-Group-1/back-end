@@ -34,6 +34,7 @@ router.post("/request-reset", async (req, res) => {
       user_id: user.user_id,
       token,
       expires_at: expires,
+      role: 'user',
       used: false,
     },
   });
@@ -62,13 +63,20 @@ router.post("/reset-password", async (req, res) => {
   const salt = generateSalt();
   const hash = getHashedPassword(newPassword, salt);
 
-  await prisma.user.update({
-    where: { user_id: resetRecord.user_id },
-    data: {
-      hash,
-      salt,
-    },
-  });
+  // Role-based table update 
+  if (resetRecord.role === 'admin') {
+    await prisma.admin.update({
+      where: { admin_id: resetRecord.user_id },
+      data: { hash, salt },
+    });
+  } else if (resetRecord.role === 'user') {
+    await prisma.user.update({
+      where: { user_id: resetRecord.user_id },
+      data: { hash, salt },
+    });
+  } else {
+    return res.status(400).json({ error: "Invalid role in password reset record." });
+  }
 
   await prisma.passwordReset.update({
     where: { token },
@@ -76,6 +84,41 @@ router.post("/reset-password", async (req, res) => {
   });
 
   res.json({ message: "Password reset successful" });
+});
+
+// POST /auth/admin-reset-request
+router.post("/admin-request-reset", async (req, res) => {
+  const { email } = req.body;
+
+  const user = await prisma.admin.findUnique({ where: { email } });
+
+  if (!user) {
+    // Respond generically to avoid leaking info
+    return res.json({ message: "If an account exists, a reset email has been sent." });
+  }
+
+  const token = generateToken();
+  const expires = new Date(Date.now() + 1000 * 60 * 60); // 1 hour
+
+  await prisma.passwordReset.create({
+    data: {
+      user_id: user.admin_id,
+      token,
+      expires_at: expires,
+      role: 'admin',
+      used: false,
+    },
+  });
+
+  const resetLink = `${process.env.ADMIN_FRONTEND_URL}/reset-password?token=${token}`; // Remember to update this if necessary, located locally in .env and reiterated in example.env
+
+  await transporter.sendMail({
+    to: email,
+    subject: "Password Reset Request",
+    html: `<p>Click <a href="${resetLink}">here</a> to reset your password.</p>`,
+  });
+
+  res.json({ message: "If an account exists, a reset email has been sent." });
 });
 
 module.exports = router;

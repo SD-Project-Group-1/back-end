@@ -23,7 +23,7 @@ app.use("/api/devices", deviceRoutes);
 app.use("/api/locations", locationRoutes);
 app.use("/api/borrow", borrowRoutes);
 app.use("/api/zipcode", zipcodeRoutes);
-app.use("/auth", authRoutes);
+app.use("/api/auth", authRoutes);
 app.get("/api/me", ensureAnyAuth, async (req, res) => {
   try {
     if (req.role === "user") {
