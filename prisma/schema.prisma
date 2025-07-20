@@ -10,7 +10,7 @@ datasource db {
 
 model admin {
   admin_id   Int      @id @default(autoincrement())
-  email      String   @db.VarChar(255)
+  email      String   @unique @db.VarChar(255)
   hash       String   @db.VarChar(255)
   salt       String   @db.VarChar(255)
   first_name String   @db.VarChar(255)
@@ -63,22 +63,21 @@ model location {
 }
 
 model user {
-  user_id        Int             @id @default(autoincrement())
-  email          String          @unique @db.VarChar(255)
-  hash           String          @db.VarChar(255)
-  salt           String          @db.VarChar(255)
-  first_name     String          @db.VarChar(255)
-  last_name      String          @db.VarChar(255)
-  phone          String?         @db.VarChar(255)
-  street_address String          @db.VarChar(255)
-  city           String          @db.VarChar(255)
-  state          String          @db.Char(2)
-  zip_code       String          @db.Char(5)
-  dob            DateTime        @db.Date
-  is_verified    Boolean         @default(false)
-  created        DateTime        @default(now())
+  user_id        Int      @id @default(autoincrement())
+  email          String   @unique @db.VarChar(255)
+  hash           String   @db.VarChar(255)
+  salt           String   @db.VarChar(255)
+  first_name     String   @db.VarChar(255)
+  last_name      String   @db.VarChar(255)
+  phone          String?  @db.VarChar(255)
+  street_address String   @db.VarChar(255)
+  city           String   @db.VarChar(255)
+  state          String   @db.Char(2)
+  zip_code       String   @db.Char(5)
+  dob            DateTime @db.Date
+  is_verified    Boolean  @default(false)
+  created        DateTime @default(now())
   borrow         borrow[]
-  passwordResets passwordReset[]
 }
 
 model passwordReset {
@@ -87,7 +86,7 @@ model passwordReset {
   token      String   @unique @db.VarChar(255)
   expires_at DateTime
   used       Boolean  @default(false)
-  role       String   // "user" or "admin"
+  role       String   @default("user") @db.VarChar(255)
 
   @@map("password_resets")
 }

@@ -29,13 +29,13 @@ router.post("/request-reset", async (req, res) => {
   const token = generateToken();
   const expires = new Date(Date.now() + 3600 * 1000); // 1 hour from now
 
-    await prisma.passwordReset.create({
+  await prisma.passwordReset.create({
     data: {
-      user_id: user.user_id,    
+      user_id: user.user_id,
       token,
       expires_at: expires,
-      role: 'user',                
-      used: false,                  
+      role: 'user',
+      used: false,
     },
   });
 
@@ -60,10 +60,10 @@ router.post("/reset-password", async (req, res) => {
     return res.status(400).json({ error: "Invalid or expired token" });
   }
 
-  const salt = await generateSalt();
+  const salt = generateSalt();
   const hash = getHashedPassword(newPassword, salt);
 
-   // Role-based table update 
+  // Role-based table update 
   if (resetRecord.role === 'admin') {
     await prisma.admin.update({
       where: { admin_id: resetRecord.user_id },
@@ -92,7 +92,7 @@ router.post("/admin-request-reset", async (req, res) => {
 
   const user = await prisma.admin.findUnique({ where: { email } });
 
-  if (!user || user.role !== "admin") {
+  if (!user) {
     // Respond generically to avoid leaking info
     return res.json({ message: "If an account exists, a reset email has been sent." });
   }
@@ -102,14 +102,14 @@ router.post("/admin-request-reset", async (req, res) => {
 
   await prisma.passwordReset.create({
     data: {
-      user_id: user.user_id,    
+      user_id: user.admin_id,
       token,
       expires_at: expires,
-      role: 'admin',                
-      used: false,                  
+      role: 'admin',
+      used: false,
     },
   });
-  
+
   const resetLink = `${process.env.ADMIN_FRONTEND_URL}/reset-password?token=${token}`; // Remember to update this if necessary, located locally in .env and reiterated in example.env
 
   await transporter.sendMail({
