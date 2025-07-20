@@ -29,12 +29,13 @@ router.post("/request-reset", async (req, res) => {
   const token = generateToken();
   const expires = new Date(Date.now() + 3600 * 1000); // 1 hour from now
 
-  await prisma.passwordReset.create({
+    await prisma.passwordReset.create({
     data: {
-      user_id: user.user_id,
+      user_id: user.user_id,    
       token,
       expires_at: expires,
-      used: false,
+      role: 'user',                
+      used: false,                  
     },
   });
 
@@ -59,16 +60,23 @@ router.post("/reset-password", async (req, res) => {
     return res.status(400).json({ error: "Invalid or expired token" });
   }
 
-  const salt = generateSalt();
+  const salt = await generateSalt();
   const hash = getHashedPassword(newPassword, salt);
 
-  await prisma.user.update({
-    where: { user_id: resetRecord.user_id },
-    data: {
-      hash,
-      salt,
-    },
-  });
+   // Role-based table update 
+  if (resetRecord.role === 'admin') {
+    await prisma.admin.update({
+      where: { admin_id: resetRecord.user_id },
+      data: { hash, salt },
+    });
+  } else if (resetRecord.role === 'user') {
+    await prisma.user.update({
+      where: { user_id: resetRecord.user_id },
+      data: { hash, salt },
+    });
+  } else {
+    return res.status(400).json({ error: "Invalid role in password reset record." });
+  }
 
   await prisma.passwordReset.update({
     where: { token },
@@ -82,7 +90,7 @@ router.post("/reset-password", async (req, res) => {
 router.post("/admin-request-reset", async (req, res) => {
   const { email } = req.body;
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.admin.findUnique({ where: { email } });
 
   if (!user || user.role !== "admin") {
     // Respond generically to avoid leaking info
@@ -92,11 +100,13 @@ router.post("/admin-request-reset", async (req, res) => {
   const token = generateToken();
   const expires = new Date(Date.now() + 1000 * 60 * 60); // 1 hour
 
-  await prisma.resetToken.create({
+  await prisma.passwordReset.create({
     data: {
-      user_id: user.user_id,
+      user_id: user.user_id,    
       token,
       expires_at: expires,
+      role: 'admin',                
+      used: false,                  
     },
   });
   

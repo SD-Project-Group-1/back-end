@@ -87,9 +87,9 @@ model passwordReset {
   token      String   @unique @db.VarChar(255)
   expires_at DateTime
   used       Boolean  @default(false)
-  user       user     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  role       String   // "user" or "admin"
 
-  @@map("password_resets") // Optional: maps to MySQL table name
+  @@map("password_resets")
 }
 
 enum borrow_borrow_status {
