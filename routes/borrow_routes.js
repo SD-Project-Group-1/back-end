@@ -476,7 +476,7 @@ router.patch("/update/:borrowId", ensureAnyAuth, async (req, res) => {
       data: {
         borrow_status,
         borrow_date: borrow_status ? new Date(borrow_date) : undefined,
-        return_date: return_date ? new Date(return_date) : undefined,
+        return_date: borrow_status === "Cancelled" ? null : (return_date ? new Date(return_date) : undefined),
         daily_usage: usage,
         device_return_condition,
         device: {
