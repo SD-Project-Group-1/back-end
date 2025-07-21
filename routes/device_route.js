@@ -95,10 +95,12 @@ router.get("/available", ensureAnyAuth, async (req, res) => {
       const latestBorrow = d.borrow[0];
       const isAvailable = !latestBorrow || latestBorrow.borrow_status === "Checked_in" || latestBorrow.borrow_status === "Cancelled";
 
-      if (!grouped[type]) grouped[type] = { deviceType: type, available: true };
+      if (!grouped[type]) grouped[type] = { deviceType: type, available: false, availableCount: 0 };
 
-      // Mark as unavailable if any device of this type isn't available
-      if (!isAvailable) grouped[type].available = false;
+      if (isAvailable) {
+        grouped[type].available = true;
+        grouped[type].availableCount++;
+      }
     }
 
     const data = Object.values(grouped);
