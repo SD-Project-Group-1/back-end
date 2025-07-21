@@ -56,16 +56,6 @@ router.post("/create", async (req, res) => {
     !first_name || !last_name || !phone || !street_address || !city || !state ||
     !zip_code || !dob
   ) {
-    console.log(
-      !first_name,
-      !last_name,
-      !phone,
-      !street_address,
-      !city,
-      !state,
-      !zip_code,
-      !dob,
-    );
     res.status(400).send("Missing user information.");
     return;
   }

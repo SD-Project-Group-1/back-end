@@ -363,7 +363,7 @@ const validateDate = (date, maxDays) => {
   if (isNaN(date))
     return false;
 
-  if (!date || date.valueOf() < Date.now()) {
+  if (!date || date.valueOf() < Date.now() - (24 * 60 * 60 * 1000)) {
     return false;
   }
 
@@ -377,17 +377,20 @@ const validateDate = (date, maxDays) => {
 // Update borrow record (Admin only)
 router.patch("/update/:borrowId", ensureAnyAuth, async (req, res) => {
   const borrowId = parseInt(req.params.borrowId);
-  let { borrow_status, return_date, device_return_condition, device_id, borrow_date } = req.body;
+  let { borrow_status, return_date, device_return_condition, device_id, borrow_date, daily_usage } = req.body;
 
   try {
     const record = await prisma.borrow.findUnique({
       where: { borrow_id: borrowId }
     });
 
+    const newStatus = borrow_status && record.borrow_status !== borrow_status;
     borrow_status = borrow_status ?? record.borrow_status;
 
-    if (return_date && validateDate(return_date)) {
-      return_date = new Date(return_date);
+    const retDateVal = new Date(return_date);
+
+    if (return_date && !isNaN(retDateVal)) {
+      return_date = retDateVal;
     } else if (return_date) {
       return res.status(400).send(`Bad return date: ${return_date}`);
     } else {
@@ -402,6 +405,11 @@ router.patch("/update/:borrowId", ensureAnyAuth, async (req, res) => {
       borrow_date = record.borrow_date;
     }
 
+    let usage = undefined;
+    if (daily_usage && !isNaN(daily_usage) && borrow_status === "Checked_in") {
+      usage = parseInt(daily_usage);
+    }
+
     if (req.role === "user") {
       if (record.user_id !== req.id) {
         res.status(401).send("Cannot edit this request.");
@@ -413,8 +421,14 @@ router.patch("/update/:borrowId", ensureAnyAuth, async (req, res) => {
         return;
       }
 
-      if (record.borrow_status !== "Submitted" && borrow_status !== record.borrow_status) {
-        res.status(401).send("Cannot change the date of a request that is past the \"submitted\" stage.");
+      if (borrow_date !== record.borrow_date && borrow_status !== "Submitted") {
+        res.status(401).send("A user may not change the borrow date after approval! Please cancel instead.");
+        return;
+      }
+
+
+      if (newStatus && borrow_status !== "Cancelled") {
+        res.status(401).send("Cannot change the date of or cancel a request that is past the \"submitted\" stage.");
         return;
       }
 
@@ -463,6 +477,7 @@ router.patch("/update/:borrowId", ensureAnyAuth, async (req, res) => {
         borrow_status,
         borrow_date: borrow_status ? new Date(borrow_date) : undefined,
         return_date: return_date ? new Date(return_date) : undefined,
+        daily_usage: usage,
         device_return_condition,
         device: {
           disconnect: device_id === null ? true : undefined,
